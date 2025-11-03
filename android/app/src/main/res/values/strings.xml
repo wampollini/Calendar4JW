@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">calendar4jw</string>
+    <string name="title_activity_main">calendar4jw</string>
+    <string name="package_name">com.calendar4jw.app</string>
+    <string name="custom_url_scheme">com.calendar4jw.app</string>
+</resources>

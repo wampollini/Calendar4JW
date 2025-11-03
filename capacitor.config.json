@@ -1,0 +1,14 @@
+{
+  "appId": "com.calendar4jw.app",
+  "appName": "Calendar4jw",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
