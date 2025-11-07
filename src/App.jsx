@@ -16,13 +16,41 @@ const t = {
     caldavPassword: 'Password', caldavAccountName: 'Nome Account',
     days: ['D', 'L', 'M', 'M', 'G', 'V', 'S'], 
     months: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+  },
+  es: {
+    title: 'Calendar4jw', today: 'Hoy', newEvent: 'Nuevo', accounts: 'Cuentas',
+    save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar',
+    noEvents: 'Sin eventos', monthView: 'Mes', weekView: 'Semana', agendaView: 'Agenda',
+    eventTitle: 'Título', date: 'Fecha', startTime: 'Inicio', endTime: 'Fin',
+    location: 'Ubicación', description: 'Descripción', confirmDelete: '¿Eliminar evento?',
+    regularEvent: 'Normal', circuitAssembly: 'Asamblea', regionalConvention: 'Congreso',
+    memorial: 'Conmemoración', specialTalk: 'Discurso', coVisit: 'Visita SC',
+    selectEventType: 'Tipo',
+    caldavConnect: 'CalDAV', caldavServerUrl: 'URL', caldavUsername: 'Usuario',
+    caldavPassword: 'Contraseña', caldavAccountName: 'Nombre',
+    days: ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
+    months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  },
+  en: {
+    title: 'Calendar4jw', today: 'Today', newEvent: 'New', accounts: 'Accounts',
+    save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit',
+    noEvents: 'No events', monthView: 'Month', weekView: 'Week', agendaView: 'Agenda',
+    eventTitle: 'Title', date: 'Date', startTime: 'Start', endTime: 'End',
+    location: 'Location', description: 'Description', confirmDelete: 'Delete event?',
+    regularEvent: 'Regular', circuitAssembly: 'Assembly', regionalConvention: 'Convention',
+    memorial: 'Memorial', specialTalk: 'Special Talk', coVisit: 'CO Visit',
+    selectEventType: 'Type',
+    caldavConnect: 'CalDAV', caldavServerUrl: 'Server URL', caldavUsername: 'Username',
+    caldavPassword: 'Password', caldavAccountName: 'Account Name',
+    days: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   }
 };
 
-const API_URL = 'https://calendar4jw-backend.onrender.com';
+const API_URL = 'https://cal4jw.wahost.eu'; // ← CAMBIA CON IL TUO DOMINIO VPS
 
 const CalendarApp = () => {
-  const [language] = useState('it');
+  const [language, setLanguage] = useState('it');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -73,17 +101,44 @@ const CalendarApp = () => {
   };
 
   const syncGoogle = async (userId) => {
-    if (!userId) return;
+    if (!userId) {
+      console.log('syncGoogle: no userId');
+      alert('Nessun userId per sincronizzare');
+      return;
+    }
+    
+    console.log('Syncing Google with userId:', userId);
     setSyncing(true);
     try {
-      const res = await fetch(`${API_URL}/api/events/${userId}`);
+      const url = `${API_URL}/api/events/${userId}`;
+      console.log('Fetching from:', url);
+      
+      const res = await fetch(url);
+      console.log('Response status:', res.status);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
+      console.log('Data received:', data);
+      
       if (data.events) {
-        setEvents([...events.filter(e => e.accountId !== 1), ...data.events]);
-        alert(`${data.events.length} eventi sincronizzati`);
+        console.log('Events count:', data.events.length);
+        // Rimuovi eventi Google vecchi e aggiungi i nuovi
+        const localEvents = events.filter(e => e.accountId !== 1);
+        const allEvents = [...localEvents, ...data.events];
+        setEvents(allEvents);
+        localStorage.setItem('calendar4jw_events', JSON.stringify(allEvents));
+        alert(`✅ ${data.events.length} eventi Google sincronizzati!`);
+      } else if (data.error) {
+        alert('❌ Errore: ' + data.error);
+      } else {
+        alert('⚠️ Nessun evento trovato');
       }
     } catch (err) {
-      alert('Errore sync');
+      console.error('Sync error:', err);
+      alert('❌ Errore sync: ' + err.message);
     } finally {
       setSyncing(false);
     }
@@ -100,29 +155,89 @@ const CalendarApp = () => {
   };
 
   useEffect(() => {
+    // Setup deep linking
+    const setupDeepLink = async () => {
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+          const AppPlugin = window.Capacitor.Plugins.App;
+          
+          console.log('Setting up App URL listener...');
+          
+          AppPlugin.addListener('appUrlOpen', (event) => {
+            console.log('Deep link received!', event);
+            const url = event.url;
+            
+            try {
+              // Parse: calendar4jw://?userId=...&connected=true
+              const urlObj = new URL(url.replace('calendar4jw://', 'http://dummy/'));
+              const userId = urlObj.searchParams.get('userId');
+              const connected = urlObj.searchParams.get('connected');
+              
+              console.log('Parsed params:', { userId, connected });
+              
+              if (userId && connected === 'true') {
+                console.log('Setting Google userId:', userId);
+                setGoogleUserId(userId);
+                localStorage.setItem('googleUserId', userId);
+                setTimeout(() => syncGoogle(userId), 1000);
+                alert('✅ Connesso a Google Calendar!');
+              }
+            } catch (e) {
+              console.error('Error parsing deep link:', e);
+            }
+          });
+        } else {
+          console.log('Capacitor App plugin not available');
+        }
+      } catch (err) {
+        console.error('Error setting up deep link:', err);
+      }
+    };
+    
+    setupDeepLink();
+    
     // Carica eventi salvati
     const savedEvents = localStorage.getItem('calendar4jw_events');
     if (savedEvents) {
-      setEvents(JSON.parse(savedEvents));
+      try {
+        setEvents(JSON.parse(savedEvents));
+        console.log('Loaded events from localStorage:', JSON.parse(savedEvents).length);
+      } catch (e) {
+        console.error('Error loading events:', e);
+      }
     }
     
     // Carica account CalDAV
     const savedCaldav = localStorage.getItem('calendar4jw_caldav');
     if (savedCaldav) {
-      setCaldavAccounts(JSON.parse(savedCaldav));
+      try {
+        setCaldavAccounts(JSON.parse(savedCaldav));
+      } catch (e) {
+        console.error('Error loading CalDAV accounts:', e);
+      }
     }
     
-    // Controlla Google OAuth
+    // Controlla Google OAuth da URL (fallback per web)
     const params = new URLSearchParams(window.location.search);
     const userId = params.get('userId');
-    if (userId) {
+    const connected = params.get('connected');
+    
+    console.log('URL params:', { userId, connected });
+    
+    if (userId && connected === 'true') {
+      console.log('Setting Google userId from URL:', userId);
       setGoogleUserId(userId);
       localStorage.setItem('googleUserId', userId);
       syncGoogle(userId);
       window.history.replaceState({}, '', window.location.pathname);
     } else {
       const saved = localStorage.getItem('googleUserId');
-      if (saved) setGoogleUserId(saved);
+      if (saved) {
+        console.log('Loaded Google userId from localStorage:', saved);
+        setGoogleUserId(saved);
+      } else {
+        console.log('No Google userId found');
+      }
     }
   }, []);
 
@@ -396,9 +511,17 @@ const CalendarApp = () => {
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Calendar className="w-7 h-7 text-blue-500" />{tr.title}
           </h1>
-          <button onClick={() => setShowSystemMenu(!showSystemMenu)} className="p-2 bg-gray-700 rounded-lg">
-            <Menu className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSystemMenu(!showSystemMenu)} className="p-2 bg-gray-700 rounded-lg">
+              <Menu className="w-5 h-5" />
+            </button>
+            <select value={language} onChange={(e) => setLanguage(e.target.value)}
+              className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs">
+              <option value="it">IT</option>
+              <option value="es">ES</option>
+              <option value="en">EN</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-2 mb-4">
