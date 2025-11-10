@@ -2,7 +2,16 @@
   "appId": "com.calendar4jw.app",
   "appName": "Calendar4jw",
   "webDir": "dist",
-  "server": {
-    "androidScheme": "https"
+  "plugins": {
+    "App": {
+      "handleUrlOpen": true
+    }
+  },
+  "android": {
+    "intentFilters": [
+      {
+        "scheme": "calendar4jw"
+      }
+    ]
   }
 }
