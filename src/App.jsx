@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Settings, Trash2, Edit2, Cloud, CloudOff, RefreshCw, Menu, X, Search, Clock, Share2, Paperclip, Sun, Moon, Monitor } from 'lucide-react';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Preferences } from '@capacitor/preferences';
+import { connectCalDAV, syncCalDAVEvents, getCalDAVAccounts, disconnectCalDAV, createCalDAVEvent, deleteCalDAVEvent } from './lib/caldavSync';
 
 const t = {
   it: { 
     title: 'Calendar4jw', today: 'Oggi', newEvent: 'Nuovo', accounts: 'Account', 
     save: 'Salva', cancel: 'Annulla', delete: 'Elimina', edit: 'Modifica', 
     noEvents: 'Nessun evento', monthView: 'Mese', weekView: 'Settimana', agendaView: 'Agenda',
-    eventTitle: 'Titolo', date: 'Data', startTime: 'Inizio', endTime: 'Fine',
+    eventTitle: 'Titolo', date: 'Data', endDate: 'Data fine', startTime: 'Inizio', endTime: 'Fine',
     location: 'Luogo', description: 'Descrizione', confirmDelete: 'Eliminare questo evento?',
     regularEvent: 'Normale', circuitAssembly: 'Assemblea', regionalConvention: 'Congresso',
     memorial: 'Commemorazione', specialTalk: 'Discorso Speciale', coVisit: 'Visita CO',
@@ -14,10 +17,14 @@ const t = {
     caldavConnect: 'CalDAV', caldavServerUrl: 'URL Server', caldavUsername: 'Username',
     caldavPassword: 'Password', caldavAccountName: 'Nome Account',
     settings: 'Impostazioni', language: 'Lingua', theme: 'Tema', defaultView: 'Vista predefinita',
+    defaultCalendar: 'Calendario predefinito', notificationTime: 'Tempo notifica predefinito',
     permissions: 'Permessi', searchEvents: 'Cerca eventi', serviceHours: 'Ore servizio',
-    hours: 'Ore', visits: 'Visite', addServiceHours: 'Aggiungi ore servizio',
+    hours: 'Ore', visits: 'SB', addServiceHours: 'Aggiungi ore servizio',
     monthTotal: 'Totale mese', share: 'Condividi', attachments: 'Allegati',
-    addAttachment: 'Aggiungi allegato', changeColor: 'Cambia colore',
+    addAttachment: 'Aggiungi allegato', changeColor: 'Cambia colore', openInMaps: 'Apri in Mappe',
+    notifyBefore: 'Notifica prima', minutes: 'minuti', days: 'giorni', week: 'settimana',
+    viewDetails: 'Dettagli', close: 'Chiudi',
+    recurring: 'Ricorrente', noRepeat: 'Mai', daily: 'Giornaliero', weekly: 'Settimanale', monthly: 'Mensile', yearly: 'Annuale',
     days: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'], 
     months: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'],
     light: 'Chiaro', dark: 'Scuro', system: 'Sistema'
@@ -26,7 +33,7 @@ const t = {
     title: 'Calendar4jw', today: 'Hoy', newEvent: 'Nuevo', accounts: 'Cuentas',
     save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar',
     noEvents: 'Sin eventos', monthView: 'Mes', weekView: 'Semana', agendaView: 'Agenda',
-    eventTitle: 'Título', date: 'Fecha', startTime: 'Inicio', endTime: 'Fin',
+    eventTitle: 'Título', date: 'Fecha', endDate: 'Fecha fin', startTime: 'Inicio', endTime: 'Fin',
     location: 'Ubicación', description: 'Descripción', confirmDelete: '¿Eliminar evento?',
     regularEvent: 'Normal', circuitAssembly: 'Asamblea', regionalConvention: 'Congreso',
     memorial: 'Conmemoración', specialTalk: 'Discurso', coVisit: 'Visita SC',
@@ -34,10 +41,14 @@ const t = {
     caldavConnect: 'CalDAV', caldavServerUrl: 'URL', caldavUsername: 'Usuario',
     caldavPassword: 'Contraseña', caldavAccountName: 'Nombre',
     settings: 'Ajustes', language: 'Idioma', theme: 'Tema', defaultView: 'Vista predeterminada',
+    defaultCalendar: 'Calendario predeterminado', notificationTime: 'Tiempo de notificación',
     permissions: 'Permisos', searchEvents: 'Buscar eventos', serviceHours: 'Horas servicio',
-    hours: 'Horas', visits: 'Visitas', addServiceHours: 'Añadir horas', 
+    hours: 'Horas', visits: 'CB', addServiceHours: 'Añadir horas', 
     monthTotal: 'Total mes', share: 'Compartir', attachments: 'Adjuntos',
-    addAttachment: 'Añadir adjunto', changeColor: 'Cambiar color',
+    addAttachment: 'Añadir adjunto', changeColor: 'Cambiar color', openInMaps: 'Abrir en Mapas',
+    notifyBefore: 'Notificar antes', minutes: 'minutos', days: 'días', week: 'semana',
+    viewDetails: 'Detalles', close: 'Cerrar',
+    recurring: 'Recurrente', noRepeat: 'Nunca', daily: 'Diario', weekly: 'Semanal', monthly: 'Mensual', yearly: 'Anual',
     days: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
     months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
     light: 'Claro', dark: 'Oscuro', system: 'Sistema'
@@ -46,7 +57,7 @@ const t = {
     title: 'Calendar4jw', today: 'Today', newEvent: 'New', accounts: 'Accounts',
     save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit',
     noEvents: 'No events', monthView: 'Month', weekView: 'Week', agendaView: 'Agenda',
-    eventTitle: 'Title', date: 'Date', startTime: 'Start', endTime: 'End',
+    eventTitle: 'Title', date: 'Date', endDate: 'End date', startTime: 'Start', endTime: 'End',
     location: 'Location', description: 'Description', confirmDelete: 'Delete event?',
     regularEvent: 'Regular', circuitAssembly: 'Assembly', regionalConvention: 'Convention',
     memorial: 'Memorial', specialTalk: 'Special Talk', coVisit: 'CO Visit',
@@ -54,17 +65,19 @@ const t = {
     caldavConnect: 'CalDAV', caldavServerUrl: 'Server URL', caldavUsername: 'Username',
     caldavPassword: 'Password', caldavAccountName: 'Account Name',
     settings: 'Settings', language: 'Language', theme: 'Theme', defaultView: 'Default view',
+    defaultCalendar: 'Default calendar', notificationTime: 'Default notification time',
     permissions: 'Permissions', searchEvents: 'Search events', serviceHours: 'Service hours',
-    hours: 'Hours', visits: 'Visits', addServiceHours: 'Add service hours',
+    hours: 'Hours', visits: 'BS', addServiceHours: 'Add service hours',
     monthTotal: 'Month total', share: 'Share', attachments: 'Attachments',
-    addAttachment: 'Add attachment', changeColor: 'Change color',
+    addAttachment: 'Add attachment', changeColor: 'Change color', openInMaps: 'Open in Maps',
+    notifyBefore: 'Notify before', minutes: 'minutes', days: 'days', week: 'week',
+    viewDetails: 'Details', close: 'Close',
+    recurring: 'Recurring', noRepeat: 'Never', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly',
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
     light: 'Light', dark: 'Dark', system: 'System'
   }
 };
-
-const API_URL = 'https://cal4jw.wahost.eu';
 
 const CalendarApp = () => {
   const [language, setLanguage] = useState('it');
@@ -78,6 +91,7 @@ const CalendarApp = () => {
   const [googleUserId, setGoogleUserId] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [viewingEvent, setViewingEvent] = useState(null);
   const [showCaldavModal, setShowCaldavModal] = useState(false);
   const [caldavAccounts, setCaldavAccounts] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -94,21 +108,27 @@ const CalendarApp = () => {
     serverUrl: '', username: '', password: '', accountName: ''
   });
   
+  const [caldavCalendars, setCaldavCalendars] = useState([]);
+  const [selectedCaldavCalendars, setSelectedCaldavCalendars] = useState([]);
+  const [caldavConnecting, setCaldavConnecting] = useState(false);
+  const [caldavStep, setCaldavStep] = useState('form'); // 'form' o 'selectCalendars'
+  
   const [settings, setSettings] = useState({
     theme: 'dark',
     defaultView: 'month',
-    notifications: true
+    notifications: true,
+    defaultCalendar: 1,
+    defaultNotificationTime: 15
   });
   
   const [newEvent, setNewEvent] = useState({
-    title: '', date: '', startTime: '', endTime: '', location: '', description: '', 
-    accountId: 1, eventType: 'regular', attachments: []
+    title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', 
+    accountId: 1, eventType: 'regular', attachments: [], notifyBefore: 15, 
+    recurring: 'none', recurringEndDate: ''
   });
 
   const [accounts, setAccounts] = useState([
-    { id: 1, name: 'Google', color: '#4285f4', active: true },
-    { id: 2, name: 'Microsoft', color: '#0078d4', active: true },
-    { id: 3, name: 'CalDAV', color: '#34a853', active: true }
+    { id: 1, name: 'Google', color: '#4285f4', active: true }
   ]);
 
   const eventTypeTemplates = {
@@ -131,7 +151,18 @@ const CalendarApp = () => {
 
   const getEventsForDate = (date) => {
     const dateStr = formatDate(date);
-    return events.filter(e => e.date === dateStr && accounts.find(a => a.id === e.accountId)?.active);
+    const filtered = events.filter(e => {
+      const hasAccount = accounts.find(a => a.id === e.accountId)?.active;
+      if (e.date === dateStr && !hasAccount) {
+        console.log(`[App] Event filtered out - no active account found:`, {
+          eventTitle: e.title,
+          eventAccountId: e.accountId,
+          availableAccountIds: accounts.map(a => a.id)
+        });
+      }
+      return e.date === dateStr && hasAccount;
+    });
+    return filtered;
   };
 
   const getFilteredEvents = () => {
@@ -161,17 +192,60 @@ const CalendarApp = () => {
     return { hours: totalHours, visits: totalVisits };
   };
 
-  const syncGoogle = async (userId) => {
-    if (!userId) return;
+  const syncGoogle = async () => {
     setSyncing(true);
     try {
-      const res = await fetch(`${API_URL}/api/events/${userId}`);
+      const user = await GoogleAuth.signIn();
+      if (!user || !user.authentication || !user.authentication.accessToken) {
+        throw new Error('Autenticazione fallita');
+      }
+      
+      const accessToken = user.authentication.accessToken;
+      setGoogleUserId(user.email);
+      
+      // Fetch eventi da Google Calendar (ultimi 6 mesi e prossimi 12 mesi)
+      const timeMin = new Date();
+      timeMin.setMonth(timeMin.getMonth() - 6);
+      const timeMax = new Date();
+      timeMax.setMonth(timeMax.getMonth() + 12);
+      
+      const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime`;
+      
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      if (data.events) {
+      
+      if (data.items) {
+        const googleEvents = data.items
+          .filter(item => item.start && (item.start.date || item.start.dateTime))
+          .map(item => {
+            const startDate = item.start.date || item.start.dateTime?.split('T')[0];
+            const startTime = item.start.dateTime ? new Date(item.start.dateTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+            const endTime = item.end?.dateTime ? new Date(item.end.dateTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+            
+            return {
+              id: item.id,
+              googleId: item.id,
+              title: item.summary || 'Senza titolo',
+              date: startDate,
+              startTime: startTime,
+              endTime: endTime,
+              location: item.location || '',
+              description: item.description || '',
+              type: 'regular',
+              accountId: 1,
+              color: '#4285f4'
+            };
+          });
+        
         const localEvents = events.filter(e => e.accountId !== 1);
-        setEvents([...localEvents, ...data.events]);
-        alert(`✅ ${data.events.length} eventi sincronizzati!`);
+        setEvents([...localEvents, ...googleEvents]);
+        localStorage.setItem('calendar4jw_google_token', accessToken);
+        localStorage.setItem('calendar4jw_google_user', user.email);
+        alert(`✅ ${googleEvents.length} eventi sincronizzati!`);
       }
     } catch (err) {
       alert('❌ Errore sync: ' + err.message);
@@ -181,19 +255,17 @@ const CalendarApp = () => {
   };
 
   const connectGoogle = async () => {
-    try {
-      const res = await fetch(`${API_URL}/auth/google`);
-      const data = await res.json();
-      window.location.href = data.authUrl;
-    } catch (err) {
-      alert('Errore connessione');
-    }
+    await syncGoogle();
   };
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('calendar4jw_settings');
     if (savedSettings) {
       const loaded = JSON.parse(savedSettings);
+      // Se defaultCalendar è 2 o 3 (Microsoft rimosso), resetta a 1 (Google)
+      if (loaded.defaultCalendar === 2 || loaded.defaultCalendar === 3) {
+        loaded.defaultCalendar = 1;
+      }
       setSettings(loaded);
       setViewMode(loaded.defaultView || 'month');
     }
@@ -201,32 +273,78 @@ const CalendarApp = () => {
     const savedHours = localStorage.getItem('calendar4jw_service_hours');
     if (savedHours) setServiceHours(JSON.parse(savedHours));
     
-    const savedAccounts = localStorage.getItem('calendar4jw_accounts');
-    if (savedAccounts) setAccounts(JSON.parse(savedAccounts));
+    // NON caricare accounts da localStorage - li ricostruiamo sempre
+    // Partiamo solo con Google
+    setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
     
     const savedEvents = localStorage.getItem('calendar4jw_events');
-    if (savedEvents) setEvents(JSON.parse(savedEvents));
+    if (savedEvents) {
+      const loadedEvents = JSON.parse(savedEvents);
+      // Assicura che tutti gli eventi Google abbiano accountId: 1
+      const fixedEvents = loadedEvents.map(evt => {
+        if (evt.googleId && !evt.accountId) {
+          return { ...evt, accountId: 1 };
+        }
+        return evt;
+      });
+      setEvents(fixedEvents);
+    }
     
     const savedCaldav = localStorage.getItem('calendar4jw_caldav');
     if (savedCaldav) setCaldavAccounts(JSON.parse(savedCaldav));
     
-    const params = new URLSearchParams(window.location.search);
-    const userId = params.get('userId');
-    const connected = params.get('connected');
+    // Carica account CalDAV da Preferences
+    getCalDAVAccounts().then(caldavAccs => {
+      if (caldavAccs.length > 0) {
+        setCaldavAccounts(caldavAccs);
+        
+        // Aggiungi gli account CalDAV all'array accounts per renderli visibili
+        setAccounts(prev => {
+          // Mantieni solo Google (id: 1) e aggiungi CalDAV
+          const googleOnly = prev.filter(a => a.id === 1);
+          const caldavAsAccounts = caldavAccs.map(ca => ({
+            id: parseInt(ca.id),
+            name: ca.accountName || 'CalDAV',
+            color: '#34a853',
+            active: true
+          }));
+          console.log('[App] Accounts finali:', [...googleOnly, ...caldavAsAccounts].map(a => ({ id: a.id, name: a.name })));
+          return [...googleOnly, ...caldavAsAccounts];
+        });
+        
+        // Sincronizzazione automatica ogni 30 minuti
+        const syncInterval = setInterval(async () => {
+          console.log('[App] Auto-sync CalDAV events...');
+          for (const account of caldavAccs) {
+            try {
+              await syncCaldavEvents(account.id);
+            } catch (err) {
+              console.error('[App] Auto-sync error for account', account.id, err);
+            }
+          }
+        }, 30 * 60 * 1000); // 30 minuti
+        
+        // Cleanup interval on unmount
+        return () => clearInterval(syncInterval);
+      }
+    });
     
-    if (userId && connected === 'true') {
-      setGoogleUserId(userId);
-      localStorage.setItem('googleUserId', userId);
-      syncGoogle(userId);
-      window.history.replaceState({}, '', window.location.pathname);
-    } else {
-      const saved = localStorage.getItem('googleUserId');
-      if (saved) setGoogleUserId(saved);
-    }
+    // Inizializza GoogleAuth
+    GoogleAuth.initialize({
+      clientId: '149382287239-3vlds2tnv8l5hrludrhdbn5rabar1197.apps.googleusercontent.com',
+      scopes: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
+      grantOfflineAccess: true
+    });
+    
+    const savedUser = localStorage.getItem('calendar4jw_google_user');
+    if (savedUser) setGoogleUserId(savedUser);
   }, []);
 
   useEffect(() => {
-    if (events.length > 0) localStorage.setItem('calendar4jw_events', JSON.stringify(events));
+    if (events.length > 0) {
+      console.log('[App] Saving events to localStorage:', events.length);
+      localStorage.setItem('calendar4jw_events', JSON.stringify(events));
+    }
   }, [events]);
 
   useEffect(() => {
@@ -237,9 +355,7 @@ const CalendarApp = () => {
     localStorage.setItem('calendar4jw_service_hours', JSON.stringify(serviceHours));
   }, [serviceHours]);
 
-  useEffect(() => {
-    localStorage.setItem('calendar4jw_accounts', JSON.stringify(accounts));
-  }, [accounts]);
+  // NON salvare accounts in localStorage - li ricostruiamo sempre da Google + CalDAV
 
   const minSwipeDistance = 50;
 
@@ -325,7 +441,7 @@ const CalendarApp = () => {
             {dayEvents.map(e => (
               <div key={e.id} className="text-xs p-2 rounded cursor-pointer"
                 style={{ backgroundColor: accounts.find(a => a.id === e.accountId)?.color, color: 'white' }}
-                onClick={() => { setSelectedDate(date); setShowDayView(true); }}>
+                onClick={() => handleViewDetails(e)}>
                 <div className="font-semibold truncate">{e.title}</div>
                 {e.startTime && <div className="text-[10px] opacity-90">{e.startTime}</div>}
               </div>
@@ -341,13 +457,21 @@ const CalendarApp = () => {
     const filteredEvents = searchQuery ? getFilteredEvents() : events;
     const days = [];
     
+    // Filtra eventi solo per il mese corrente
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
     const eventsByDate = {};
     filteredEvents.forEach(e => {
-      if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
-      eventsByDate[e.date].push(e);
+      const [y, m] = e.date.split('-').map(Number);
+      // Mostra solo eventi del mese e anno corrente
+      if (y === currentYear && m - 1 === currentMonth) {
+        if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
+        eventsByDate[e.date].push(e);
+      }
     });
     
-    Object.keys(eventsByDate).sort().slice(0, 30).forEach((dateStr, i) => {
+    Object.keys(eventsByDate).sort().forEach((dateStr, i) => {
       const [y, m, d] = dateStr.split('-').map(Number);
       const date = new Date(y, m - 1, d);
       const dayEvents = eventsByDate[dateStr];
@@ -371,7 +495,7 @@ const CalendarApp = () => {
               {dayEvents.map(e => (
                 <div key={e.id} className={`p-3 rounded-lg border-l-4 cursor-pointer ${settings.theme === 'light' ? 'bg-white hover:bg-gray-50' : 'bg-gray-700 hover:bg-gray-600'}`}
                   style={{ borderColor: accounts.find(a => a.id === e.accountId)?.color }}
-                  onClick={() => { setSelectedDate(date); setShowDayView(true); }}>
+                  onClick={() => handleViewDetails(e)}>
                   <div className="font-semibold">{e.title}</div>
                   {e.startTime && <div className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>{e.startTime} - {e.endTime}</div>}
                   {e.location && <div className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>📍 {e.location}</div>}
@@ -390,52 +514,355 @@ const CalendarApp = () => {
     return days;
   };
 
-  const handleSave = async () => {
-    if (!newEvent.title || !newEvent.date) return;
-    const evt = editingEvent ? { ...newEvent, id: editingEvent.id } : { ...newEvent, id: Date.now() };
+  // Espandi ricorrenze localmente
+  const expandRecurrence = (baseEvent) => {
+    if (!baseEvent.recurring || baseEvent.recurring === 'none') return [baseEvent];
     
-    if (newEvent.accountId === 1 && googleUserId) {
-      try {
-        await fetch(`${API_URL}/api/events/${googleUserId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newEvent)
-        });
-      } catch (err) {
-        console.error(err);
+    const occurrences = [];
+    const startDate = new Date(baseEvent.date);
+    const endDate = baseEvent.recurringEndDate ? new Date(baseEvent.recurringEndDate) : new Date(startDate.getFullYear() + 1, startDate.getMonth(), startDate.getDate());
+    
+    let currentDate = new Date(startDate);
+    let instanceCount = 0;
+    const maxInstances = 365; // Limite sicurezza
+    
+    while (currentDate <= endDate && instanceCount < maxInstances) {
+      occurrences.push({
+        ...baseEvent,
+        id: `${baseEvent.id}_${instanceCount}`,
+        date: currentDate.toISOString().split('T')[0],
+        recurringId: baseEvent.id // ID dell'evento ricorrente principale
+      });
+      
+      instanceCount++;
+      
+      // Incrementa in base alla frequenza
+      switch (baseEvent.recurring) {
+        case 'daily':
+          currentDate.setDate(currentDate.getDate() + 1);
+          break;
+        case 'weekly':
+          currentDate.setDate(currentDate.getDate() + 7);
+          break;
+        case 'monthly':
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          break;
+        case 'yearly':
+          currentDate.setFullYear(currentDate.getFullYear() + 1);
+          break;
       }
     }
     
-    if (editingEvent) {
-      setEvents(events.map(e => e.id === editingEvent.id ? evt : e));
-      setEditingEvent(null);
-    } else {
-      setEvents([...events, evt]);
+    console.log(`[expandRecurrence] Espanse ${occurrences.length} occorrenze per ${baseEvent.title}`);
+    return occurrences;
+  };
+
+  const handleSave = async () => {
+    if (!newEvent.title || !newEvent.date) return;
+    // Quando modifica, preserva googleId e caldavUrl dall'evento originale
+    const evt = editingEvent 
+      ? { ...newEvent, id: editingEvent.id, googleId: editingEvent.googleId, caldavUrl: editingEvent.caldavUrl } 
+      : { ...newEvent, id: Date.now() };
+    
+    console.log('[handleSave] Salvando evento:', evt);
+    console.log('[handleSave] Account ID selezionato:', newEvent.accountId, 'tipo:', typeof newEvent.accountId);
+    console.log('[handleSave] Accounts disponibili:', accounts.map(a => ({ id: a.id, tipo: typeof a.id, name: a.name })));
+    
+    // Trova l'account selezionato (confronta sia come numero che come stringa)
+    const selectedAccount = accounts.find(a => a.id === newEvent.accountId || a.id === parseInt(newEvent.accountId));
+    console.log('[handleSave] Account trovato:', selectedAccount);
+    
+    if (!selectedAccount) {
+      console.error('[handleSave] ERRORE: Account non trovato!');
+      alert('⚠️ Seleziona un calendario valido (Google o CalDAV)');
+      return;
     }
     
+    let savedToCloud = false;
+    
+    // Salvataggio su Google Calendar
+    if (selectedAccount.name === 'Google' || newEvent.accountId === 1) {
+      try {
+        const token = localStorage.getItem('calendar4jw_google_token');
+        if (token) {
+          const startDateTime = newEvent.startTime 
+            ? `${newEvent.date}T${newEvent.startTime}:00` 
+            : newEvent.date;
+          const endDateTime = newEvent.endTime 
+            ? `${newEvent.date}T${newEvent.endTime}:00` 
+            : newEvent.date;
+          
+          const googleEvent = {
+            summary: newEvent.title,
+            location: newEvent.location,
+            description: newEvent.description,
+            start: newEvent.startTime 
+              ? { dateTime: startDateTime, timeZone: 'Europe/Rome' }
+              : { date: newEvent.date },
+            end: newEvent.endTime 
+              ? { dateTime: endDateTime, timeZone: 'Europe/Rome' }
+              : { date: newEvent.date }
+          };
+          
+          // Aggiungi ricorrenza se presente
+          if (newEvent.recurring && newEvent.recurring !== 'none') {
+            const freq = newEvent.recurring.toUpperCase();
+            let rrule = `RRULE:FREQ=${freq}`;
+            if (newEvent.recurringEndDate) {
+              // Google vuole UNTIL nel formato YYYYMMDDTHHMMSSZ
+              const untilDate = newEvent.recurringEndDate.replace(/-/g, '');
+              rrule += `;UNTIL=${untilDate}T235959Z`;
+            }
+            googleEvent.recurrence = [rrule];
+            console.log('[Google] RRULE:', rrule);
+          }
+          
+          const method = editingEvent?.googleId ? 'PATCH' : 'POST';
+          const url = editingEvent?.googleId 
+            ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${editingEvent.googleId}`
+            : 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+          
+          console.log('[Google] Request:', { method, url, timestamp: new Date().toISOString() });
+          
+          const res = await fetch(url, {
+            method,
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(googleEvent)
+          });
+          
+          if (res.ok) {
+            const savedEvent = await res.json();
+            evt.googleId = savedEvent.id;
+            savedToCloud = true;
+            console.log('✅ Evento salvato su Google Calendar');
+          } else if (res.status === 401) {
+            // Token scaduto - prova a ottenere un nuovo token
+            console.warn('⚠️ Token Google scaduto, tento refresh automatico...');
+            try {
+              const user = await GoogleAuth.signIn();
+              if (user && user.authentication && user.authentication.accessToken) {
+                const newToken = user.authentication.accessToken;
+                localStorage.setItem('calendar4jw_google_token', newToken);
+                
+                // Riprova la richiesta con il nuovo token
+                const retryRes = await fetch(url, {
+                  method,
+                  headers: {
+                    'Authorization': `Bearer ${newToken}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(googleEvent)
+                });
+                
+                if (retryRes.ok) {
+                  const savedEvent = await retryRes.json();
+                  evt.googleId = savedEvent.id;
+                  savedToCloud = true;
+                  console.log('✅ Evento salvato su Google Calendar dopo refresh token');
+                } else {
+                  throw new Error(`Errore dopo refresh: ${retryRes.status}`);
+                }
+              } else {
+                throw new Error('Refresh token fallito');
+              }
+            } catch (refreshErr) {
+              console.error('❌ Refresh token fallito:', refreshErr);
+              alert('⚠️ Sessione Google scaduta. Effettua nuovamente il login dal menu Impostazioni.');
+              localStorage.removeItem('calendar4jw_google_token');
+              setAccounts(prev => prev.map(acc => 
+                acc.id === 1 ? { ...acc, connected: false } : acc
+              ));
+            }
+          } else {
+            const errorText = await res.text();
+            console.error('❌ Errore HTTP Google:', { status: res.status, statusText: res.statusText, body: errorText });
+            alert(`⚠️ Errore nel salvataggio su Google Calendar: ${res.status} ${res.statusText}`);
+          }
+        } else {
+          alert('⚠️ Token Google non trovato. Effettua il login.');
+        }
+      } catch (err) {
+        console.error('Errore salvataggio Google:', err);
+        alert('⚠️ Errore nel salvataggio su Google Calendar: ' + err.message);
+      }
+    }
+    // Salvataggio su CalDAV (tutti gli account che non sono Google)
+    else if (selectedAccount.id !== 1) {
+      console.log('[handleSave] Tento salvataggio CalDAV per account ID:', newEvent.accountId);
+      try {
+        const caldavAccounts = await getCalDAVAccounts();
+        console.log('[handleSave] CalDAV accounts da Preferences:', caldavAccounts);
+        const account = caldavAccounts.find(a => parseInt(a.id) === newEvent.accountId);
+        console.log('[handleSave] Account CalDAV selezionato:', account);
+        
+        if (account) {
+          const { value: accountJson } = await Preferences.get({ key: `caldav_${account.id}` });
+          if (accountJson) {
+            const accountData = JSON.parse(accountJson);
+            let calendars = accountData.calendars || [];
+            
+            console.log('[handleSave] Calendari nell\'account:', calendars);
+            console.log('[handleSave] Primo calendario dettagli:', JSON.stringify(calendars[0], null, 2));
+            
+            // Se non ci sono calendari salvati, prova a ricaricarli
+            if (calendars.length === 0) {
+              console.log('[handleSave] Nessun calendario trovato, ricarico...');
+              const caldavData = caldavAccounts.find(a => a.id === account.id);
+              if (caldavData && caldavData.calendars) {
+                calendars = caldavData.calendars;
+              }
+            }
+            
+            // Filtra calendari validi (esclude directory base, inbox, outbox, trashbin)
+            const validCalendars = calendars.filter(cal => {
+              const id = cal.id || '';
+              const url = cal.url || '';
+              // Escludi calendari di sistema e la directory base
+              return !id.endsWith('/william/') && 
+                     !id.includes('/inbox') && 
+                     !id.includes('/outbox') && 
+                     !id.includes('/trashbin') &&
+                     !url.endsWith('/william/') &&
+                     !url.includes('/inbox') && 
+                     !url.includes('/outbox') && 
+                     !url.includes('/trashbin');
+            });
+            
+            console.log('[handleSave] Calendari validi filtrati:', validCalendars.length, 'su', calendars.length);
+            
+            // Usa il primo calendario valido disponibile
+            if (validCalendars.length > 0) {
+              const calendar = validCalendars[0];
+              const calendarUrl = calendar.url;
+              
+              console.log('[handleSave] Usando calendario:', calendar.displayName);
+              console.log('[handleSave] Calendar ID:', calendar.id);
+              console.log('[handleSave] URL calendario:', calendarUrl);
+              
+              // Se stiamo modificando un evento esistente con caldavUrl, usa quello
+              const targetUrl = editingEvent?.caldavUrl || calendarUrl;
+              console.log('[handleSave] Target URL per CalDAV:', targetUrl);
+              console.log('[handleSave] Editing event?:', !!editingEvent, 'caldavUrl:', editingEvent?.caldavUrl);
+              
+              const result = await createCalDAVEvent(account.id, targetUrl, {
+                title: newEvent.title,
+                description: newEvent.description,
+                location: newEvent.location,
+                startDate: newEvent.date,
+                startTime: newEvent.startTime,
+                endDate: newEvent.endDate || newEvent.date,
+                endTime: newEvent.endTime,
+                recurring: newEvent.recurring,
+                recurringEndDate: newEvent.recurringEndDate
+              }, editingEvent?.caldavUrl ? true : false); // passa flag isUpdate
+              
+              if (result.success) {
+                console.log('✅ Evento salvato su CalDAV');
+                evt.caldavUrl = result.eventUrl;
+                savedToCloud = true;
+              } else {
+                console.error('❌ Errore salvataggio CalDAV:', result.error);
+                alert('⚠️ Errore nel salvataggio su CalDAV: ' + result.error);
+              }
+            } else {
+              console.error('[handleSave] Nessun calendario CalDAV valido disponibile');
+              alert('⚠️ Nessun calendario CalDAV valido trovato. Seleziona almeno un calendario vero (non inbox/outbox/trashbin).');
+            }
+          } else {
+            console.error('[handleSave] Account JSON non trovato');
+            alert('⚠️ Dati account CalDAV non trovati. Riconfigura l\'account.');
+          }
+        } else {
+          console.error('[handleSave] Account CalDAV non trovato in Preferences');
+          alert('⚠️ Account CalDAV non trovato. Riconfigura l\'account.');
+        }
+      } catch (err) {
+        console.error('Errore salvataggio CalDAV:', err);
+        alert('⚠️ Errore nel salvataggio su CalDAV: ' + err.message);
+      }
+    }
+    
+    // Salva in locale solo se è stato salvato sul cloud
+    if (!savedToCloud) {
+      console.log('⚠️ Evento non salvato sul cloud, salto il salvataggio locale');
+      return;
+    }
+    
+    if (editingEvent) {
+      console.log('[handleSave] Aggiornamento evento esistente');
+      // Se l'evento modificato era ricorrente, rimuovi tutte le occorrenze vecchie
+      const eventsWithoutOld = events.filter(e => 
+        e.id !== editingEvent.id && e.recurringId !== editingEvent.id
+      );
+      // Espandi il nuovo evento
+      const expandedEvents = expandRecurrence(evt);
+      setEvents([...eventsWithoutOld, ...expandedEvents]);
+      setEditingEvent(null);
+    } else {
+      console.log('[handleSave] Aggiunta nuovo evento alla lista');
+      // Espandi ricorrenze se presenti
+      const expandedEvents = expandRecurrence(evt);
+      setEvents([...events, ...expandedEvents]);
+    }
+    
+    console.log('[handleSave] Evento salvato, chiusura modal');
     setShowEventModal(false);
-    setNewEvent({ title: '', date: '', startTime: '', endTime: '', location: '', description: '', accountId: 1, eventType: 'regular', attachments: [] });
+    setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '' });
   };
 
   const handleDelete = async (eventId) => {
     if (!window.confirm(tr.confirmDelete)) return;
     const event = events.find(e => e.id === eventId);
     
-    if (event?.googleId && googleUserId) {
+    // Elimina da Google Calendar
+    if (event?.googleId) {
       try {
-        await fetch(`${API_URL}/api/events/${googleUserId}/${event.googleId}`, { method: 'DELETE' });
+        const token = localStorage.getItem('calendar4jw_google_token');
+        if (token) {
+          await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${event.googleId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Errore eliminazione Google:', err);
+      }
+    }
+    
+    // Elimina da CalDAV
+    if (event?.caldavUrl && event.accountId !== 1) {
+      try {
+        const caldavAccounts = await getCalDAVAccounts();
+        const account = caldavAccounts.find(a => parseInt(a.id) === event.accountId);
+        if (account && event.caldavUrl) {
+          const result = await deleteCalDAVEvent(account.id, event.caldavUrl);
+          if (result.success) {
+            console.log('✅ Evento eliminato da CalDAV');
+          } else {
+            console.warn('⚠️ Errore eliminazione CalDAV:', result.error);
+          }
+        }
+      } catch (err) {
+        console.error('Errore eliminazione CalDAV:', err);
       }
     }
     
     setEvents(events.filter(e => e.id !== eventId));
   };
 
+  const handleViewDetails = (event) => {
+    setShowDayView(false);
+    setViewingEvent(event);
+  };
+
   const handleEdit = (event) => {
     setEditingEvent(event);
     setNewEvent({ ...event });
     setShowDayView(false);
+    setViewingEvent(null);
     setShowEventModal(true);
   };
 
@@ -484,27 +911,100 @@ const CalendarApp = () => {
       return;
     }
 
+    setCaldavConnecting(true);
     try {
-      const res = await fetch(`${API_URL}/api/caldav/connect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(caldavForm)
-      });
-      const data = await res.json();
+      const result = await connectCalDAV(
+        caldavForm.serverUrl,
+        caldavForm.username,
+        caldavForm.password,
+        caldavForm.accountName
+      );
 
-      if (data.success) {
-        const newAcc = { caldavId: data.caldavId, accountName: data.accountName, serverUrl: caldavForm.serverUrl };
-        const updated = [...caldavAccounts, newAcc];
-        setCaldavAccounts(updated);
-        localStorage.setItem('calendar4jw_caldav', JSON.stringify(updated));
-        setShowCaldavModal(false);
-        setCaldavForm({ serverUrl: '', username: '', password: '', accountName: '' });
-        alert('✅ Connesso a CalDAV!');
+      if (result.success) {
+        setCaldavCalendars(result.calendars);
+        setCaldavStep('selectCalendars');
+        setSelectedCaldavCalendars(result.calendars.map(cal => cal.url)); // Seleziona tutti di default
       } else {
-        alert(data.error);
+        alert(`❌ ${result.error}`);
       }
     } catch (err) {
-      alert('❌ Errore connessione CalDAV');
+      alert('❌ Errore connessione CalDAV: ' + err.message);
+    } finally {
+      setCaldavConnecting(false);
+    }
+  };
+  
+  const finishCaldavSetup = async () => {
+    // Carica account CalDAV salvati
+    const caldavAccs = await getCalDAVAccounts();
+    setCaldavAccounts(caldavAccs);
+    
+    // Aggiungi gli account CalDAV all'array accounts per renderli visibili
+    if (caldavAccs.length > 0) {
+      setAccounts(prev => {
+        const caldavAccountIds = caldavAccs.map(a => parseInt(a.id));
+        console.log('[App] Adding CalDAV accounts after setup:', caldavAccountIds);
+        const withoutCaldav = prev.filter(a => !caldavAccountIds.includes(a.id));
+        const caldavAsAccounts = caldavAccs.map(ca => ({
+          id: parseInt(ca.id),
+          name: ca.accountName || 'CalDAV',
+          color: '#34a853',
+          active: true
+        }));
+        console.log('[App] Accounts array after CalDAV setup:', [...withoutCaldav, ...caldavAsAccounts].map(a => ({ id: a.id, name: a.name })));
+        return [...withoutCaldav, ...caldavAsAccounts];
+      });
+    }
+    
+    // Sincronizza eventi dai calendari selezionati
+    if (caldavAccs.length > 0) {
+      const latestAccount = caldavAccs[caldavAccs.length - 1];
+      
+      // Salva i calendari selezionati nell'account
+      const { value: accountJson } = await Preferences.get({ key: `caldav_${latestAccount.id}` });
+      if (accountJson) {
+        const accountData = JSON.parse(accountJson);
+        accountData.calendars = caldavCalendars.filter(cal => 
+          selectedCaldavCalendars.includes(cal.url)
+        );
+        await Preferences.set({
+          key: `caldav_${latestAccount.id}`,
+          value: JSON.stringify(accountData)
+        });
+      }
+      
+      await syncCaldavEvents(latestAccount.id);
+    }
+    
+    // Reset form
+    setCaldavForm({ serverUrl: '', username: '', password: '', accountName: '' });
+    setCaldavCalendars([]);
+    setSelectedCaldavCalendars([]);
+    setCaldavStep('form');
+    setShowCaldavModal(false);
+  };
+  
+  const syncCaldavEvents = async (accountId) => {
+    setSyncing(true);
+    try {
+      // Non passiamo calendarIds, syncCalDAVEvents userà tutti i calendari salvati nell'account
+      const result = await syncCalDAVEvents(accountId);
+      
+      if (result.success) {
+        // Rimuovi vecchi eventi CalDAV di questo account
+        const otherEvents = events.filter(e => e.accountId !== parseInt(accountId));
+        const newEvents = [...otherEvents, ...result.events];
+        console.log('[App] Setting events:', newEvents.length, 'total (', result.events.length, 'CalDAV +', otherEvents.length, 'others)');
+        console.log('[App] Sample CalDAV events:', result.events.slice(0, 3).map(e => ({ title: e.title, date: e.date })));
+        setEvents(newEvents);
+        alert(`✅ ${result.events.length} eventi sincronizzati da ${result.calendarsCount} calendari!`);
+      } else {
+        alert(`❌ ${result.error}`);
+      }
+    } catch (err) {
+      alert('❌ Errore sync: ' + err.message);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -530,7 +1030,7 @@ const CalendarApp = () => {
             </button>
             <button onClick={() => { 
               setEditingEvent(null); 
-              setNewEvent({ ...newEvent, date: formatDate(selectedDate), eventType: 'regular', attachments: [] }); 
+              setNewEvent({ ...newEvent, date: formatDate(selectedDate), eventType: 'regular', attachments: [], accountId: settings.defaultCalendar }); 
               setShowDayView(false); 
               setShowEventModal(true); 
             }} className="p-2 rounded-lg hover:bg-gray-700">
@@ -560,9 +1060,9 @@ const CalendarApp = () => {
             dayEvents.map(e => (
               <div key={e.id} className={`${cardBg} rounded-lg p-4 border-l-4 ${borderClass} shadow`}
                 style={{ borderColor: accounts.find(a => a.id === e.accountId)?.color }}>
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold flex-1">{e.title}</h3>
-                  <div className="flex gap-1">
+                <div className="flex justify-between items-start mb-2" onClick={() => handleViewDetails(e)}>
+                  <h3 className="font-bold flex-1 cursor-pointer">{e.title}</h3>
+                  <div className="flex gap-1" onClick={(evt) => evt.stopPropagation()}>
                     <button onClick={() => handleShare(e)} className="text-blue-400 p-2 hover:bg-gray-700 rounded">
                       <Share2 className="w-4 h-4" />
                     </button>
@@ -590,6 +1090,54 @@ const CalendarApp = () => {
               </div>
             ))}
         </div>
+
+        {showServiceModal && selectedServiceDate && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
+            <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+              <div className={`p-4 border-b ${borderClass}`}>
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-green-500" />
+                  {tr.addServiceHours}
+                </h3>
+                <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
+                </p>
+              </div>
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">⏰ {tr.hours}</label>
+                  <input
+                    id="service-hours"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    defaultValue={serviceHours[formatDate(selectedServiceDate)]?.hours || 0}
+                    className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">🚪 {tr.visits}</label>
+                  <input
+                    id="service-visits"
+                    type="number"
+                    min="0"
+                    defaultValue={serviceHours[formatDate(selectedServiceDate)]?.visits || 0}
+                    className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 p-4">
+                <button onClick={() => { setShowServiceModal(false); setSelectedServiceDate(null); }} 
+                  className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
+                  {tr.cancel}
+                </button>
+                <button onClick={saveServiceHours} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow">
+                  {tr.save}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -598,10 +1146,9 @@ const CalendarApp = () => {
     <div className={`min-h-screen ${bgClass} ${textClass} relative`}>
       <div className={`${cardBg} p-4 sticky top-0 z-10 border-b ${borderClass} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg">
-              C4
-            </div>
+          <h1 className="text-xl font-semibold flex items-center gap-2">
+            <img src="/icon.png" alt="Calendar4JW" className="w-8 h-8 rounded-lg shadow-sm" />
+            <span className="tracking-wide">Calendar4JW</span>
           </h1>
           <div className="flex items-center gap-2">
             {!showSearch && (
@@ -644,7 +1191,7 @@ const CalendarApp = () => {
               </button>
             ))}
           </div>
-          <button onClick={() => { setNewEvent({ ...newEvent, date: formatDate(new Date()), attachments: [] }); setShowEventModal(true); }}
+          <button onClick={() => { setNewEvent({ ...newEvent, date: formatDate(new Date()), attachments: [], accountId: settings.defaultCalendar }); setShowEventModal(true); }}
             className="px-3 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 text-sm hover:bg-blue-700 transition shadow">
             <Plus className="w-4 h-4" />{tr.newEvent}
           </button>
@@ -704,11 +1251,51 @@ const CalendarApp = () => {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Settings className="w-5 h-5 text-purple-500" />
-                  <span className="font-semibold">CalDAV</span>
+                  <span className="font-semibold">CalDAV / Nextcloud</span>
                 </div>
               </div>
-              <button onClick={() => { setShowCaldavModal(true); setShowSystemMenu(false); }}
-                className="w-full px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">Connetti</button>
+              {caldavAccounts.length > 0 ? (
+                <div className="space-y-2">
+                  {caldavAccounts.map(acc => (
+                    <div key={acc.id} className={`p-2 ${settings.theme === 'light' ? 'bg-white' : 'bg-gray-600'} rounded flex items-center justify-between`}>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{acc.accountName}</div>
+                        <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {acc.calendarsCount} calendari
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={async () => { 
+                          await syncCaldavEvents(acc.id); 
+                          setShowSystemMenu(false); 
+                        }}
+                          disabled={syncing}
+                          className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition disabled:opacity-50">
+                          <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+                        </button>
+                        <button onClick={async () => {
+                          if (window.confirm('Disconnettere questo account CalDAV?')) {
+                            await disconnectCalDAV(acc.id);
+                            const accounts = await getCalDAVAccounts();
+                            setCaldavAccounts(accounts);
+                            setEvents(events.filter(e => e.accountId !== parseInt(acc.id)));
+                          }
+                        }}
+                          className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition">
+                          <CloudOff className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={() => { setShowCaldavModal(true); setShowSystemMenu(false); }}
+                    className="w-full px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm">
+                    + Aggiungi Account
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => { setShowCaldavModal(true); setShowSystemMenu(false); }}
+                  className="w-full px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">Connetti</button>
+              )}
             </div>
 
             <div className={`${settings.theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-lg p-4`}>
@@ -785,54 +1372,6 @@ const CalendarApp = () => {
         </div>
       )}
 
-      {showServiceModal && selectedServiceDate && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-50">
-          <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
-            <div className={`p-4 border-b ${borderClass}`}>
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="w-6 h-6 text-green-500" />
-                {tr.addServiceHours}
-              </h3>
-              <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
-              </p>
-            </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">⏰ {tr.hours}</label>
-                <input
-                  id="service-hours"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  defaultValue={serviceHours[formatDate(selectedServiceDate)]?.hours || 0}
-                  className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">🚪 {tr.visits}</label>
-                <input
-                  id="service-visits"
-                  type="number"
-                  min="0"
-                  defaultValue={serviceHours[formatDate(selectedServiceDate)]?.visits || 0}
-                  className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 p-4">
-              <button onClick={() => { setShowServiceModal(false); setSelectedServiceDate(null); }} 
-                className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
-                {tr.cancel}
-              </button>
-              <button onClick={saveServiceHours} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow">
-                {tr.save}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-50">
           <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
@@ -846,12 +1385,20 @@ const CalendarApp = () => {
             <div className="p-4 space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2">🌍 {tr.language}</label>
-                <select value={language} onChange={(e) => setLanguage(e.target.value)}
-                  className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
-                  <option value="it">🇮🇹 Italiano</option>
-                  <option value="es">🇪🇸 Español</option>
-                  <option value="en">🇬🇧 English</option>
-                </select>
+                <div className="grid grid-cols-3 gap-3">
+                  {['it', 'es', 'en'].map(lang => (
+                    <button
+                      key={lang}
+                      onClick={() => setLanguage(lang)}
+                      className={`px-4 py-3 rounded-lg font-bold text-lg transition ${
+                        language === lang 
+                          ? 'bg-blue-600 text-white shadow-lg' 
+                          : settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'
+                      }`}>
+                      {lang.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
               
               <div>
@@ -891,6 +1438,29 @@ const CalendarApp = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">📅 {tr.defaultCalendar}</label>
+                <select value={settings.defaultCalendar} onChange={(e) => setSettings({ ...settings, defaultCalendar: parseInt(e.target.value) })}
+                  className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
+                  {accounts.filter(a => a.active).map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">🔔 {tr.notificationTime}</label>
+                <select value={settings.defaultNotificationTime} onChange={(e) => setSettings({ ...settings, defaultNotificationTime: parseInt(e.target.value) })}
+                  className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
+                  <option value="5">5 {tr.minutes}</option>
+                  <option value="10">10 {tr.minutes}</option>
+                  <option value="15">15 {tr.minutes}</option>
+                  <option value="30">30 {tr.minutes}</option>
+                  <option value="60">1 {language === 'it' ? 'ora' : language === 'es' ? 'hora' : 'hour'}</option>
+                  <option value="1440">1 {language === 'it' ? 'giorno' : language === 'es' ? 'día' : 'day'}</option>
+                </select>
               </div>
               
               <div className={`p-4 ${settings.theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-lg`}>
@@ -951,8 +1521,18 @@ const CalendarApp = () => {
               <input type="text" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                 placeholder={tr.eventTitle} className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-blue-500 outline-none`} />
               
-              <input type="date" value={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-blue-500 outline-none`} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1">{tr.date}</label>
+                  <input type="date" value={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">{tr.endDate}</label>
+                  <input type="date" value={newEvent.endDate} onChange={(e) => setNewEvent({ ...newEvent, endDate: e.target.value })}
+                    placeholder="Opzionale" className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+                </div>
+              </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -967,12 +1547,58 @@ const CalendarApp = () => {
                 </div>
               </div>
               
-              <input type="text" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                placeholder={`📍 ${tr.location}`} className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+              <div>
+                <label className="block text-sm font-medium mb-2">📍 {tr.location}</label>
+                <div className="flex gap-2">
+                  <input type="text" value={newEvent.location} onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                    placeholder={tr.location} className={`flex-1 px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+                  {newEvent.location && (
+                    <button type="button" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(newEvent.location)}`, '_blank')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                      {tr.openInMaps}
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">🔔 {tr.notifyBefore}</label>
+                <select value={newEvent.notifyBefore} onChange={(e) => setNewEvent({ ...newEvent, notifyBefore: parseInt(e.target.value) })}
+                  className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
+                  <option value="5">5 {tr.minutes}</option>
+                  <option value="10">10 {tr.minutes}</option>
+                  <option value="15">15 {tr.minutes}</option>
+                  <option value="30">30 {tr.minutes}</option>
+                  <option value="60">1 {language === 'it' ? 'ora' : language === 'es' ? 'hora' : 'hour'}</option>
+                  <option value="1440">1 {language === 'it' ? 'giorno' : language === 'es' ? 'día' : 'day'}</option>
+                  <option value="10080">1 {tr.week}</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">🔁 {tr.recurring}</label>
+                <select value={newEvent.recurring} onChange={(e) => setNewEvent({ ...newEvent, recurring: e.target.value })}
+                  className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
+                  <option value="none">{tr.noRepeat}</option>
+                  <option value="daily">{tr.daily}</option>
+                  <option value="weekly">{tr.weekly}</option>
+                  <option value="monthly">{tr.monthly}</option>
+                  <option value="yearly">{tr.yearly}</option>
+                </select>
+              </div>
+              
+              {newEvent.recurring !== 'none' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">📅 Fine ricorrenza</label>
+                  <input type="date" value={newEvent.recurringEndDate} onChange={(e) => setNewEvent({ ...newEvent, recurringEndDate: e.target.value })}
+                    placeholder="Opzionale" className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+                </div>
+              )}
               
               <textarea value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                 placeholder={tr.description} rows="3" className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`}></textarea>
               
+              {/* ALLEGATI TEMPORANEAMENTE DISABILITATI - CAUSANO CRASH
               <div>
                 <label className="block text-sm font-medium mb-2">📎 {tr.attachments}</label>
                 <input type="file" onChange={handleFileAttach} className="hidden" id="file-input" />
@@ -995,9 +1621,10 @@ const CalendarApp = () => {
                   </div>
                 )}
               </div>
+              */}
             </div>
             <div className="flex gap-3 p-4 border-t ${borderClass}">
-              <button onClick={() => { setShowEventModal(false); setEditingEvent(null); setNewEvent({ title: '', date: '', startTime: '', endTime: '', location: '', description: '', accountId: 1, eventType: 'regular', attachments: [] }); }} 
+              <button onClick={() => { setShowEventModal(false); setEditingEvent(null); setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '' }); }} 
                 className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
                 {tr.cancel}
               </button>
@@ -1012,36 +1639,241 @@ const CalendarApp = () => {
       {showCaldavModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-50">
           <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
-            <div className={`p-4 border-b ${borderClass} sticky top-0 ${cardBg}`}>
+            <div className={`p-4 border-b ${borderClass} sticky top-0 ${cardBg} flex items-center justify-between`}>
               <h3 className="text-xl font-semibold flex items-center gap-2">
                 <Settings className="w-6 h-6 text-purple-500" />
-                {tr.caldavConnect}
+                {caldavStep === 'form' ? tr.caldavConnect : 'Seleziona Calendari'}
               </h3>
+              <button onClick={() => { 
+                setShowCaldavModal(false); 
+                setCaldavForm({ serverUrl: '', username: '', password: '', accountName: '' });
+                setCaldavStep('form');
+                setCaldavCalendars([]);
+              }}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {caldavStep === 'form' ? (
+              <>
+                <div className="p-4 space-y-4">
+                  <div className={`p-3 ${settings.theme === 'light' ? 'bg-blue-50 border-blue-200' : 'bg-blue-900/30 border-blue-700'} border rounded-lg text-sm`}>
+                    💡 Per Nextcloud: <code className="font-mono">https://tuoserver.com</code>
+                  </div>
+                  <input type="text" value={caldavForm.accountName} 
+                    onChange={(e) => setCaldavForm({ ...caldavForm, accountName: e.target.value })}
+                    placeholder={tr.caldavAccountName} 
+                    className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
+                  <input type="url" value={caldavForm.serverUrl} 
+                    onChange={(e) => setCaldavForm({ ...caldavForm, serverUrl: e.target.value })}
+                    placeholder={tr.caldavServerUrl} 
+                    className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
+                  <input type="text" value={caldavForm.username} 
+                    onChange={(e) => setCaldavForm({ ...caldavForm, username: e.target.value })}
+                    placeholder={tr.caldavUsername} 
+                    className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
+                  <input type="password" value={caldavForm.password} 
+                    onChange={(e) => setCaldavForm({ ...caldavForm, password: e.target.value })}
+                    placeholder={tr.caldavPassword} 
+                    className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
+                </div>
+                <div className="flex gap-3 p-4 border-t ${borderClass}">
+                  <button onClick={() => { 
+                    setShowCaldavModal(false); 
+                    setCaldavForm({ serverUrl: '', username: '', password: '', accountName: '' }); 
+                  }}
+                    className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
+                    {tr.cancel}
+                  </button>
+                  <button onClick={connectCaldav} disabled={caldavConnecting}
+                    className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition shadow disabled:opacity-50">
+                    {caldavConnecting ? 'Connessione...' : 'Connetti'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-4 space-y-3">
+                  <p className={`text-sm ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                    Seleziona i calendari da sincronizzare:
+                  </p>
+                  {caldavCalendars.map(cal => (
+                    <div key={cal.url} 
+                      className={`p-3 ${settings.theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-lg flex items-center gap-3`}>
+                      <input 
+                        type="checkbox"
+                        checked={selectedCaldavCalendars.includes(cal.url)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCaldavCalendars([...selectedCaldavCalendars, cal.url]);
+                          } else {
+                            setSelectedCaldavCalendars(selectedCaldavCalendars.filter(url => url !== cal.url));
+                          }
+                        }}
+                        className="w-5 h-5 rounded"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cal.color }}></div>
+                          {cal.displayName}
+                        </div>
+                        {cal.description && (
+                          <div className={`text-sm ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                            {cal.description}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 p-4 border-t ${borderClass}">
+                  <button onClick={() => setCaldavStep('form')}
+                    className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
+                    Indietro
+                  </button>
+                  <button onClick={finishCaldavSetup}
+                    className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition shadow">
+                    Sincronizza ({selectedCaldavCalendars.length})
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {viewingEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[70]">
+          <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+            <div className={`p-4 border-b ${borderClass} sticky top-0 ${cardBg} flex items-center justify-between`}>
+              <h3 className="text-xl font-semibold">{tr.viewDetails}</h3>
+              <button onClick={() => setViewingEvent(null)}>
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="p-4 space-y-4">
-              <input type="text" value={caldavForm.accountName} 
-                onChange={(e) => setCaldavForm({ ...caldavForm, accountName: e.target.value })}
-                placeholder={tr.caldavAccountName} 
-                className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
-              <input type="url" value={caldavForm.serverUrl} 
-                onChange={(e) => setCaldavForm({ ...caldavForm, serverUrl: e.target.value })}
-                placeholder={tr.caldavServerUrl} 
-                className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
-              <input type="text" value={caldavForm.username} 
-                onChange={(e) => setCaldavForm({ ...caldavForm, username: e.target.value })}
-                placeholder={tr.caldavUsername} 
-                className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
-              <input type="password" value={caldavForm.password} 
-                onChange={(e) => setCaldavForm({ ...caldavForm, password: e.target.value })}
-                placeholder={tr.caldavPassword} 
-                className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
+              <div>
+                <div className="text-sm text-gray-400 mb-1">{tr.eventTitle}</div>
+                <div className="text-lg font-semibold">{viewingEvent.title}</div>
+              </div>
+              {viewingEvent.date && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">{tr.date}</div>
+                  <div className="font-medium">{viewingEvent.date}</div>
+                </div>
+              )}
+              {(viewingEvent.startTime || viewingEvent.endTime) && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">{tr.startTime} - {tr.endTime}</div>
+                  <div className="font-medium">{viewingEvent.startTime} - {viewingEvent.endTime}</div>
+                </div>
+              )}
+              {viewingEvent.location && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">{tr.location}</div>
+                  <div className="font-medium mb-2">📍 {viewingEvent.location}</div>
+                  <button 
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(viewingEvent.location)}`, '_blank')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {tr.openInMaps}
+                  </button>
+                </div>
+              )}
+              {viewingEvent.description && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">{tr.description}</div>
+                  <div className="whitespace-pre-wrap">{viewingEvent.description}</div>
+                </div>
+              )}
+              {viewingEvent.recurring && viewingEvent.recurring !== 'none' && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">{tr.recurring}</div>
+                  <div className="font-medium">
+                    {viewingEvent.recurring === 'daily' && tr.daily}
+                    {viewingEvent.recurring === 'weekly' && tr.weekly}
+                    {viewingEvent.recurring === 'monthly' && tr.monthly}
+                    {viewingEvent.recurring === 'yearly' && tr.yearly}
+                    {viewingEvent.recurringEndDate && ` (fino al ${viewingEvent.recurringEndDate})`}
+                  </div>
+                </div>
+              )}
+              {viewingEvent.accountId && (
+                <div>
+                  <div className="text-sm text-gray-400 mb-1">{tr.account}</div>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: accounts.find(a => a.id === viewingEvent.accountId)?.color }}
+                    ></div>
+                    <div className="font-medium">{accounts.find(a => a.id === viewingEvent.accountId)?.name}</div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-3 p-4 border-t ${borderClass}">
-              <button onClick={() => { setShowCaldavModal(false); setCaldavForm({ serverUrl: '', username: '', password: '', accountName: '' }); }}
+              <button 
+                onClick={() => { setViewingEvent(null); handleDelete(viewingEvent.id); }} 
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition shadow"
+              >
+                {tr.delete}
+              </button>
+              <button 
+                onClick={() => handleEdit(viewingEvent)} 
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition shadow"
+              >
+                {tr.edit}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showServiceModal && selectedServiceDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
+          <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+            <div className={`p-4 border-b ${borderClass}`}>
+              <h3 className="text-xl font-semibold flex items-center gap-2">
+                <Clock className="w-6 h-6 text-green-500" />
+                {tr.addServiceHours}
+              </h3>
+              <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
+              </p>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">⏰ {tr.hours}</label>
+                <input
+                  id="service-hours"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  defaultValue={serviceHours[formatDate(selectedServiceDate)]?.hours || 0}
+                  className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">🚪 {tr.visits}</label>
+                <input
+                  id="service-visits"
+                  type="number"
+                  min="0"
+                  defaultValue={serviceHours[formatDate(selectedServiceDate)]?.visits || 0}
+                  className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 p-4">
+              <button onClick={() => { setShowServiceModal(false); setSelectedServiceDate(null); }} 
                 className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
                 {tr.cancel}
               </button>
-              <button onClick={connectCaldav} className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition shadow">
+              <button onClick={saveServiceHours} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow">
                 {tr.save}
               </button>
             </div>
