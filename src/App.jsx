@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Settings, Trash2, Edit2, Cloud, CloudOff, RefreshCw, Menu, X, Search, Clock, Share2, Paperclip, Sun, Moon, Monitor } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Settings, Trash2, Edit2, Cloud, CloudOff, RefreshCw, Menu, X, Search, Clock, Share2, Paperclip, Sun, Moon, Monitor, Download, Upload, Eye, EyeOff } from 'lucide-react';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Preferences } from '@capacitor/preferences';
 import { connectCalDAV, syncCalDAVEvents, getCalDAVAccounts, disconnectCalDAV, createCalDAVEvent, deleteCalDAVEvent } from './lib/caldavSync';
+import { exportEventsToICS, downloadICS, readICSFile } from './lib/icsUtils';
 
 const t = {
   it: { 
@@ -27,7 +28,10 @@ const t = {
     recurring: 'Ricorrente', noRepeat: 'Mai', daily: 'Giornaliero', weekly: 'Settimanale', monthly: 'Mensile', yearly: 'Annuale',
     days: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'], 
     months: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'],
-    light: 'Chiaro', dark: 'Scuro', system: 'Sistema'
+    light: 'Chiaro', dark: 'Scuro', system: 'Sistema',
+    weekStartsOn: 'Inizio settimana', monday: 'Lunedì', sunday: 'Domenica',
+    exportICS: 'Esporta ICS', importICS: 'Importa ICS', exportAllEvents: 'Esporta tutti gli eventi', importFromFile: 'Importa da file',
+    importSuccess: 'eventi importati con successo', importError: 'Errore importazione file'
   },
   es: {
     title: 'Calendar4jw', today: 'Hoy', newEvent: 'Nuevo', accounts: 'Cuentas',
@@ -51,7 +55,10 @@ const t = {
     recurring: 'Recurrente', noRepeat: 'Nunca', daily: 'Diario', weekly: 'Semanal', monthly: 'Mensual', yearly: 'Anual',
     days: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
     months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-    light: 'Claro', dark: 'Oscuro', system: 'Sistema'
+    light: 'Claro', dark: 'Oscuro', system: 'Sistema',
+    weekStartsOn: 'Inicio semana', monday: 'Lunes', sunday: 'Domingo',
+    exportICS: 'Exportar ICS', importICS: 'Importar ICS', exportAllEvents: 'Exportar todos los eventos', importFromFile: 'Importar desde archivo',
+    importSuccess: 'eventos importados correctamente', importError: 'Error al importar archivo'
   },
   en: {
     title: 'Calendar4jw', today: 'Today', newEvent: 'New', accounts: 'Accounts',
@@ -75,7 +82,10 @@ const t = {
     recurring: 'Recurring', noRepeat: 'Never', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly',
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-    light: 'Light', dark: 'Dark', system: 'System'
+    light: 'Light', dark: 'Dark', system: 'System',
+    weekStartsOn: 'Week starts on', monday: 'Monday', sunday: 'Sunday',
+    exportICS: 'Export ICS', importICS: 'Import ICS', exportAllEvents: 'Export all events', importFromFile: 'Import from file',
+    importSuccess: 'events imported successfully', importError: 'Error importing file'
   }
 };
 
@@ -103,6 +113,8 @@ const CalendarApp = () => {
   const [selectedServiceDate, setSelectedServiceDate] = useState(null);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const fileInputRef = useRef(null);
+  const [showPassword, setShowPassword] = useState(false);
   
   const [caldavForm, setCaldavForm] = useState({
     serverUrl: '', username: '', password: '', accountName: ''
@@ -118,7 +130,8 @@ const CalendarApp = () => {
     defaultView: 'month',
     notifications: true,
     defaultCalendar: 1,
-    defaultNotificationTime: 15
+    defaultNotificationTime: 15,
+    weekStartsOn: 1  // 0 = domenica, 1 = lunedì
   });
   
   const [newEvent, setNewEvent] = useState({
@@ -201,7 +214,14 @@ const CalendarApp = () => {
       }
       
       const accessToken = user.authentication.accessToken;
-      setGoogleUserId(user.email);
+      const userEmail = user.email;
+      
+      // Trova se esiste già un account Google per questo email
+      const existingGoogleAccount = accounts.find(a => a.email === userEmail && a.name.startsWith('Google'));
+      const googleAccountId = existingGoogleAccount ? existingGoogleAccount.id : (
+        // Trova il primo ID libero >= 1 per nuovi account Google
+        Math.max(1, ...accounts.filter(a => a.name.startsWith('Google')).map(a => a.id), 0) + 1
+      );
       
       // Fetch eventi da Google Calendar (ultimi 6 mesi e prossimi 12 mesi)
       const timeMin = new Date();
@@ -236,16 +256,30 @@ const CalendarApp = () => {
               location: item.location || '',
               description: item.description || '',
               type: 'regular',
-              accountId: 1,
+              accountId: googleAccountId,
               color: '#4285f4'
             };
           });
         
-        const localEvents = events.filter(e => e.accountId !== 1);
+        // Rimuovi eventi esistenti di questo account Google
+        const localEvents = events.filter(e => e.accountId !== googleAccountId);
         setEvents([...localEvents, ...googleEvents]);
-        localStorage.setItem('calendar4jw_google_token', accessToken);
-        localStorage.setItem('calendar4jw_google_user', user.email);
-        alert(`✅ ${googleEvents.length} eventi sincronizzati!`);
+        
+        // Aggiungi o aggiorna account Google
+        if (!existingGoogleAccount) {
+          setAccounts(prev => [...prev, {
+            id: googleAccountId,
+            name: `Google (${userEmail})`,
+            email: userEmail,
+            color: '#4285f4',
+            active: true,
+            connected: true
+          }]);
+        }
+        
+        localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
+        localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
+        alert(`✅ ${googleEvents.length} eventi sincronizzati per ${userEmail}!`);
       }
     } catch (err) {
       alert('❌ Errore sync: ' + err.message);
@@ -357,6 +391,20 @@ const CalendarApp = () => {
 
   // NON salvare accounts in localStorage - li ricostruiamo sempre da Google + CalDAV
 
+  // Helper function per rilevare e renderizzare HTML
+  const isHTML = (str) => {
+    if (!str) return false;
+    return /<\/?[a-z][\s\S]*>/i.test(str);
+  };
+
+  const renderDescription = (description) => {
+    if (!description) return null;
+    if (isHTML(description)) {
+      return <div dangerouslySetInnerHTML={{ __html: description }} />;
+    }
+    return <div className="whitespace-pre-wrap">{description}</div>;
+  };
+
   const minSwipeDistance = 50;
 
   const onTouchStart = (e) => {
@@ -370,39 +418,62 @@ const CalendarApp = () => {
     if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
     if (distance > minSwipeDistance) {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+      if (viewMode === 'week') {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + 7);
+        setCurrentDate(newDate);
+      } else {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+      }
     }
     if (distance < -minSwipeDistance) {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+      if (viewMode === 'week') {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() - 7);
+        setCurrentDate(newDate);
+      } else {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+      }
     }
   };
 
   const renderMonth = () => {
     const y = currentDate.getFullYear();
     const m = currentDate.getMonth();
-    const firstDay = new Date(y, m, 1).getDay();
+    const firstDayOfMonth = new Date(y, m, 1).getDay();
+    // Calcola offset in base a weekStartsOn
+    const offset = (firstDayOfMonth - settings.weekStartsOn + 7) % 7;
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     const days = [];
 
-    for (let i = 0; i < firstDay; i++) {
+    // Celle vuote prima del primo giorno
+    for (let i = 0; i < offset; i++) {
       days.push(<div key={`e${i}`} className={`h-28 border ${settings.theme === 'light' ? 'border-gray-300 bg-gray-100' : 'border-gray-700 bg-gray-900'}`}></div>);
     }
 
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(y, m, d);
+      const dateKey = formatDate(date);
       const dayEvents = getEventsForDate(date);
       const isToday = new Date().toDateString() === date.toDateString();
       const isLastDay = d === daysInMonth;
       const monthTotal = isLastDay ? getMonthServiceTotal() : null;
+      const dayService = serviceHours[dateKey] || { hours: 0, visits: 0 };
+      const hasServiceHours = dayService.hours > 0 || dayService.visits > 0;
       
       days.push(
         <div key={d} onClick={() => { setSelectedDate(date); setShowDayView(true); }}
-          className={`h-28 border p-1 cursor-pointer ${
+          className={`h-28 border p-1 cursor-pointer relative ${
             settings.theme === 'light' 
               ? `border-gray-300 ${isToday ? 'bg-blue-100' : 'bg-white'}` 
               : `border-gray-700 ${isToday ? 'bg-blue-900' : 'bg-gray-800'}`
           }`}>
-          <div className={`text-sm font-bold ${isToday ? 'text-blue-500' : settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{d}</div>
+          <div className="flex items-center justify-between">
+            <div className={`text-sm font-bold ${isToday ? 'text-blue-500' : settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{d}</div>
+            {hasServiceHours && (
+              <div className="w-2 h-2 bg-green-500 rounded-full" title={`${dayService.hours}h, ${dayService.visits} ${tr.visits}`}></div>
+            )}
+          </div>
           {dayEvents.slice(0, 3).map(e => (
             <div key={e.id} className="text-[9px] px-1 rounded truncate mt-0.5"
               style={{ backgroundColor: accounts.find(a => a.id === e.accountId)?.color, color: 'white' }}>
@@ -411,7 +482,7 @@ const CalendarApp = () => {
           ))}
           {isLastDay && monthTotal && (monthTotal.hours > 0 || monthTotal.visits > 0) && (
             <div className="text-[10px] mt-1 p-1 bg-green-600 text-white rounded font-bold">
-              📊 {monthTotal.hours}h • {monthTotal.visits}v
+              📊 {monthTotal.hours}h • {monthTotal.visits} {tr.visits}
             </div>
           )}
         </div>
@@ -422,7 +493,10 @@ const CalendarApp = () => {
 
   const renderWeek = () => {
     const curr = new Date(currentDate);
-    const first = curr.getDate() - curr.getDay();
+    // Calcola il primo giorno della settimana in base alle impostazioni
+    const dayOfWeek = curr.getDay();
+    const diff = dayOfWeek - settings.weekStartsOn;
+    const first = curr.getDate() - (diff < 0 ? diff + 7 : diff);
     const week = [];
     
     for (let i = 0; i < 7; i++) {
@@ -432,25 +506,41 @@ const CalendarApp = () => {
       const isToday = new Date().toDateString() === date.toDateString();
       
       week.push(
-        <div key={i} className={`border rounded-lg overflow-hidden ${settings.theme === 'light' ? 'border-gray-300' : 'border-gray-700'}`}>
-          <div className={`text-center py-2 ${isToday ? 'bg-blue-600' : settings.theme === 'light' ? 'bg-gray-200' : 'bg-gray-800'}`}>
-            <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>{tr.days[date.getDay()]}</div>
-            <div className={`text-lg font-bold ${isToday ? 'text-white' : settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{date.getDate()}</div>
+        <div key={i} className={`flex flex-row items-stretch border-b ${settings.theme === 'light' ? 'border-gray-300' : 'border-gray-700'} ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+          {/* Header giorno a sinistra - fisso */}
+          <div className={`flex-shrink-0 w-20 flex flex-col items-center justify-center py-3 border-r ${settings.theme === 'light' ? 'border-gray-300 bg-gray-100' : 'border-gray-700 bg-gray-800'} ${isToday ? 'bg-blue-600 border-blue-600' : ''}`}>
+            <div className={`text-xs font-semibold ${isToday ? 'text-white' : settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+              {tr.days[date.getDay()]}
+            </div>
+            <div className={`text-2xl font-bold ${isToday ? 'text-white' : settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+              {date.getDate()}
+            </div>
           </div>
-          <div className="p-2 min-h-[150px] space-y-1">
-            {dayEvents.map(e => (
-              <div key={e.id} className="text-xs p-2 rounded cursor-pointer"
-                style={{ backgroundColor: accounts.find(a => a.id === e.accountId)?.color, color: 'white' }}
-                onClick={() => handleViewDetails(e)}>
-                <div className="font-semibold truncate">{e.title}</div>
-                {e.startTime && <div className="text-[10px] opacity-90">{e.startTime}</div>}
-              </div>
-            ))}
+          {/* Eventi del giorno - scrollabili orizzontalmente */}
+          <div className="flex-1 overflow-x-auto">
+            <div className="flex flex-row gap-2 p-2 min-h-[80px] items-center">
+              {dayEvents.length === 0 ? (
+                <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-400' : 'text-gray-600'} italic`}>
+                  {tr.noEvents}
+                </div>
+              ) : (
+                dayEvents.map(e => (
+                  <div key={e.id} className="flex-shrink-0 w-40 p-2 rounded-lg cursor-pointer shadow"
+                    style={{ backgroundColor: accounts.find(a => a.id === e.accountId)?.color, color: 'white' }}
+                    onClick={() => handleViewDetails(e)}>
+                    <div className="font-bold text-sm truncate">{e.title}</div>
+                    {e.startTime && <div className="text-xs opacity-90 mt-1">{e.startTime}</div>}
+                    {e.location && <div className="text-xs opacity-75 truncate mt-0.5">📍 {e.location}</div>}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       );
     }
-    return week;
+    // Ritorna le righe impilate verticalmente
+    return <div className="space-y-0">{week}</div>;
   };
 
   const renderAgenda = () => {
@@ -905,6 +995,59 @@ const CalendarApp = () => {
     setSelectedServiceDate(null);
   };
 
+  const deleteServiceHours = () => {
+    if (!selectedServiceDate) return;
+    const dateKey = formatDate(selectedServiceDate);
+    
+    // Rimuovi l'entry dalle ore di servizio
+    const updated = { ...serviceHours };
+    delete updated[dateKey];
+    setServiceHours(updated);
+    
+    setShowServiceModal(false);
+    setSelectedServiceDate(null);
+  };
+
+  const handleExportICS = () => {
+    try {
+      const icsContent = exportEventsToICS(events, 'Calendar4JW');
+      const filename = `calendar4jw_${new Date().toISOString().split('T')[0]}.ics`;
+      downloadICS(icsContent, filename);
+      alert(`${events.length} ${tr.exportAllEvents.toLowerCase()}`);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(tr.importError);
+    }
+  };
+
+  const handleImportICS = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const importedEvents = await readICSFile(file);
+      
+      // Assegna accountId dal calendario predefinito e genera ID univoci
+      const newEvents = importedEvents.map(evt => ({
+        ...evt,
+        id: `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        accountId: settings.defaultCalendar,
+        color: accounts.find(a => a.id === settings.defaultCalendar)?.color || '#4285f4'
+      }));
+
+      setEvents([...events, ...newEvents]);
+      alert(`${newEvents.length} ${tr.importSuccess}`);
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      alert(tr.importError);
+    }
+  };
+
   const connectCaldav = async () => {
     if (!caldavForm.serverUrl || !caldavForm.username || !caldavForm.password || !caldavForm.accountName) {
       alert('Compila tutti i campi');
@@ -1046,9 +1189,27 @@ const CalendarApp = () => {
                 <Clock className="w-5 h-5" />
                 <span className="font-semibold">{tr.serviceHours}</span>
               </div>
-              <div className="flex gap-4">
-                <div><span className="font-bold text-lg">{dayService.hours}</span> {tr.hours}</div>
-                <div><span className="font-bold text-lg">{dayService.visits}</span> {tr.visits}</div>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-4">
+                  <div><span className="font-bold text-lg">{dayService.hours}</span> {tr.hours}</div>
+                  <div><span className="font-bold text-lg">{dayService.visits}</span> {tr.visits}</div>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => { setSelectedServiceDate(selectedDate); setShowServiceModal(true); }}
+                    className="p-1.5 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => { 
+                    if (window.confirm(tr.confirmDelete || 'Eliminare le ore di servizio?')) {
+                      const updated = { ...serviceHours };
+                      delete updated[dateKey];
+                      setServiceHours(updated);
+                    }
+                  }}
+                    className="p-1.5 rounded bg-white bg-opacity-20 hover:bg-opacity-30 transition">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1131,6 +1292,11 @@ const CalendarApp = () => {
                   className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
                   {tr.cancel}
                 </button>
+                {serviceHours[formatDate(selectedServiceDate)] && (
+                  <button onClick={deleteServiceHours} className="px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition shadow flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
                 <button onClick={saveServiceHours} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow">
                   {tr.save}
                 </button>
@@ -1198,14 +1364,30 @@ const CalendarApp = () => {
         </div>
 
         <div className="flex items-center justify-between">
-          <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+          <button onClick={() => {
+            if (viewMode === 'week') {
+              const newDate = new Date(currentDate);
+              newDate.setDate(newDate.getDate() - 7);
+              setCurrentDate(newDate);
+            } else {
+              setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+            }
+          }}
             className={`p-2 rounded-lg ${settings.theme === 'light' ? 'hover:bg-gray-200' : 'hover:bg-gray-700'} transition`}>
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button onClick={() => setShowMonthPicker(true)} className="text-lg font-semibold hover:text-blue-500 transition">
             {tr.months[currentDate.getMonth()]} {currentDate.getFullYear()}
           </button>
-          <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+          <button onClick={() => {
+            if (viewMode === 'week') {
+              const newDate = new Date(currentDate);
+              newDate.setDate(newDate.getDate() + 7);
+              setCurrentDate(newDate);
+            } else {
+              setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+            }
+          }}
             className={`p-2 rounded-lg ${settings.theme === 'light' ? 'hover:bg-gray-200' : 'hover:bg-gray-700'} transition`}>
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -1226,23 +1408,54 @@ const CalendarApp = () => {
             </button>
             
             <div className={`${settings.theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-lg p-4`}>
-              <div className="flex items-center gap-2 mb-3">
-                <Cloud className="w-5 h-5 text-blue-500" />
-                <span className="font-semibold">Google</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Cloud className="w-5 h-5 text-blue-500" />
+                  <span className="font-semibold">Google Calendar</span>
+                </div>
               </div>
-              {googleUserId ? (
-                <div className="flex gap-2">
-                  <button onClick={() => { syncGoogle(googleUserId); setShowSystemMenu(false); }}
-                    disabled={syncing} className="flex-1 px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition disabled:opacity-50">
-                    <RefreshCw className={`w-4 h-4 inline ${syncing ? 'animate-spin' : ''}`} /> Sync
-                  </button>
-                  <button onClick={() => { setGoogleUserId(null); localStorage.removeItem('googleUserId'); setEvents(events.filter(e => e.accountId !== 1)); }}
-                    className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition">
-                    <CloudOff className="w-4 h-4" />
+              {accounts.filter(a => a.name && a.name.startsWith('Google')).length > 0 ? (
+                <div className="space-y-2">
+                  {accounts.filter(a => a.name && a.name.startsWith('Google')).map(acc => (
+                    <div key={acc.id} className={`p-3 ${settings.theme === 'light' ? 'bg-white' : 'bg-gray-600'} rounded-lg flex items-center justify-between`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{acc.email || acc.name}</div>
+                        <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {events.filter(e => e.accountId === acc.id).length} eventi
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-2">
+                        <button onClick={async () => { 
+                          await syncGoogle(); 
+                          setShowSystemMenu(false); 
+                        }}
+                          disabled={syncing}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-1">
+                          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                          Sync
+                        </button>
+                        <button onClick={() => {
+                          if (window.confirm(`Disconnettere ${acc.email}?`)) {
+                            setAccounts(prev => prev.filter(a => a.id !== acc.id));
+                            setEvents(events.filter(e => e.accountId !== acc.id));
+                            localStorage.removeItem(`calendar4jw_google_token_${acc.id}`);
+                            localStorage.removeItem(`calendar4jw_google_user_${acc.id}`);
+                          }
+                        }}
+                          className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-1">
+                          <CloudOff className="w-4 h-4" />
+                          Rimuovi
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button onClick={() => { syncGoogle(); setShowSystemMenu(false); }}
+                    className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm">
+                    + Aggiungi Account Google
                   </button>
                 </div>
               ) : (
-                <button onClick={() => { connectGoogle(); setShowSystemMenu(false); }}
+                <button onClick={() => { syncGoogle(); setShowSystemMenu(false); }}
                   className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Connetti</button>
               )}
             </div>
@@ -1257,21 +1470,22 @@ const CalendarApp = () => {
               {caldavAccounts.length > 0 ? (
                 <div className="space-y-2">
                   {caldavAccounts.map(acc => (
-                    <div key={acc.id} className={`p-2 ${settings.theme === 'light' ? 'bg-white' : 'bg-gray-600'} rounded flex items-center justify-between`}>
-                      <div className="flex-1">
+                    <div key={acc.id} className={`p-3 ${settings.theme === 'light' ? 'bg-white' : 'bg-gray-600'} rounded-lg`}>
+                      <div className="mb-2">
                         <div className="font-medium text-sm">{acc.accountName}</div>
                         <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                           {acc.calendarsCount} calendari
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-2">
                         <button onClick={async () => { 
                           await syncCaldavEvents(acc.id); 
                           setShowSystemMenu(false); 
                         }}
                           disabled={syncing}
-                          className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition disabled:opacity-50">
-                          <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+                          className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                          Sincronizza
                         </button>
                         <button onClick={async () => {
                           if (window.confirm('Disconnettere questo account CalDAV?')) {
@@ -1281,8 +1495,9 @@ const CalendarApp = () => {
                             setEvents(events.filter(e => e.accountId !== parseInt(acc.id)));
                           }
                         }}
-                          className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition">
-                          <CloudOff className="w-3 h-3" />
+                          className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition flex items-center justify-center gap-1">
+                          <CloudOff className="w-4 h-4" />
+                          Rimuovi
                         </button>
                       </div>
                     </div>
@@ -1325,12 +1540,15 @@ const CalendarApp = () => {
         {viewMode === 'month' && (
           <div>
             <div className="grid grid-cols-7 gap-0.5 mb-1">
-              {tr.days.map(d => <div key={d} className={`text-center text-xs font-bold py-2 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>{d}</div>)}
+              {Array.from({ length: 7 }, (_, i) => {
+                const dayIndex = (settings.weekStartsOn + i) % 7;
+                return <div key={i} className={`text-center text-xs font-bold py-2 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>{tr.days[dayIndex]}</div>;
+              })}
             </div>
             <div className="grid grid-cols-7 gap-0.5">{renderMonth()}</div>
           </div>
         )}
-        {viewMode === 'week' && <div className="grid grid-cols-7 gap-1">{renderWeek()}</div>}
+        {viewMode === 'week' && renderWeek()}
         {viewMode === 'agenda' && <div className="space-y-3">{renderAgenda()}</div>}
       </div>
 
@@ -1441,6 +1659,30 @@ const CalendarApp = () => {
               </div>
               
               <div>
+                <label className="block text-sm font-medium mb-3">📅 {tr.weekStartsOn}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setSettings({ ...settings, weekStartsOn: 1 })}
+                    className={`px-3 py-2 rounded-lg font-medium transition ${
+                      settings.weekStartsOn === 1 
+                        ? 'bg-blue-600 text-white shadow' 
+                        : settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'
+                    }`}>
+                    {tr.monday}
+                  </button>
+                  <button
+                    onClick={() => setSettings({ ...settings, weekStartsOn: 0 })}
+                    className={`px-3 py-2 rounded-lg font-medium transition ${
+                      settings.weekStartsOn === 0 
+                        ? 'bg-blue-600 text-white shadow' 
+                        : settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'
+                    }`}>
+                    {tr.sunday}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
                 <label className="block text-sm font-medium mb-2">📅 {tr.defaultCalendar}</label>
                 <select value={settings.defaultCalendar} onChange={(e) => setSettings({ ...settings, defaultCalendar: parseInt(e.target.value) })}
                   className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
@@ -1463,23 +1705,31 @@ const CalendarApp = () => {
                 </select>
               </div>
               
-              <div className={`p-4 ${settings.theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-lg`}>
-                <h4 className="font-semibold mb-3">🔔 {tr.permissions}</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Notifiche</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings.notifications}
-                        onChange={(e) => setSettings({ ...settings, notifications: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
+              <div>
+                <label className="block text-sm font-medium mb-3">📥📤 {tr.importICS} / {tr.exportICS}</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleExportICS}
+                    className="px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2">
+                    <Download className="w-4 h-4" />
+                    {tr.exportICS}
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    {tr.importICS}
+                  </button>
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".ics,.ical"
+                  onChange={handleImportICS}
+                  className="hidden"
+                />
               </div>
+
             </div>
           </div>
         </div>
@@ -1595,8 +1845,16 @@ const CalendarApp = () => {
                 </div>
               )}
               
-              <textarea value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                placeholder={tr.description} rows="3" className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`}></textarea>
+              <div>
+                <label className="block text-sm font-medium mb-2">📝 {tr.description}</label>
+                <textarea value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  placeholder={`${tr.description} (testo semplice o HTML)`} rows="3" className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`}></textarea>
+                {newEvent.description && isHTML(newEvent.description) && (
+                  <div className="mt-2 p-2 bg-green-600/20 border border-green-600 rounded text-xs">
+                    ✓ HTML rilevato - verrà renderizzato con formattazione
+                  </div>
+                )}
+              </div>
               
               {/* ALLEGATI TEMPORANEAMENTE DISABILITATI - CAUSANO CRASH
               <div>
@@ -1672,10 +1930,18 @@ const CalendarApp = () => {
                     onChange={(e) => setCaldavForm({ ...caldavForm, username: e.target.value })}
                     placeholder={tr.caldavUsername} 
                     className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
-                  <input type="password" value={caldavForm.password} 
-                    onChange={(e) => setCaldavForm({ ...caldavForm, password: e.target.value })}
-                    placeholder={tr.caldavPassword} 
-                    className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
+                  <div className="relative">
+                    <input type={showPassword ? "text" : "password"} value={caldavForm.password} 
+                      onChange={(e) => setCaldavForm({ ...caldavForm, password: e.target.value })}
+                      placeholder={tr.caldavPassword} 
+                      className={`w-full px-3 py-3 pr-12 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-purple-500 outline-none`} />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex gap-3 p-4 border-t ${borderClass}">
                   <button onClick={() => { 
@@ -1787,7 +2053,7 @@ const CalendarApp = () => {
               {viewingEvent.description && (
                 <div>
                   <div className="text-sm text-gray-400 mb-1">{tr.description}</div>
-                  <div className="whitespace-pre-wrap">{viewingEvent.description}</div>
+                  {renderDescription(viewingEvent.description)}
                 </div>
               )}
               {viewingEvent.recurring && viewingEvent.recurring !== 'none' && (

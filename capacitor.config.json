@@ -3,13 +3,10 @@
   "appName": "Calendar4jw",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https",
+    "androidScheme": "http",
     "cleartext": true
   },
   "plugins": {
-    "App": {
-      "handleUrlOpen": true
-    },
     "GoogleAuth": {
       "scopes": ["profile", "email", "https://www.googleapis.com/auth/calendar"],
       "serverClientId": "149382287239-3vlds2tnv8l5hrludrhdbn5rabar1197.apps.googleusercontent.com",
@@ -20,11 +17,6 @@
     }
   },
   "android": {
-    "intentFilters": [
-      {
-        "scheme": "calendar4jw"
-      }
-    ],
     "allowMixedContent": true
   }
 }
