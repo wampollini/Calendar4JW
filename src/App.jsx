@@ -1130,8 +1130,10 @@ const CalendarApp = () => {
   const syncCaldavEvents = async (accountId) => {
     setSyncing(true);
     try {
+      console.log('[App] Avvio sincronizzazione CalDAV per account:', accountId);
       // Non passiamo calendarIds, syncCalDAVEvents userà tutti i calendari salvati nell'account
       const result = await syncCalDAVEvents(accountId);
+      console.log('[App] Risultato sincronizzazione:', result);
       
       if (result.success) {
         // Rimuovi vecchi eventi CalDAV di questo account
@@ -1142,10 +1144,12 @@ const CalendarApp = () => {
         setEvents(newEvents);
         alert(`✅ ${result.events.length} eventi sincronizzati da ${result.calendarsCount} calendari!`);
       } else {
-        alert(`❌ ${result.error}`);
+        console.error('[App] Errore sincronizzazione:', result.error);
+        alert(`❌ ${result.error || 'Errore sconosciuto durante la sincronizzazione'}`);
       }
     } catch (err) {
-      alert('❌ Errore sync: ' + err.message);
+      console.error('[App] Eccezione durante sincronizzazione:', err);
+      alert('❌ Errore sync: ' + (err.message || err.toString() || 'Errore sconosciuto'));
     } finally {
       setSyncing(false);
     }

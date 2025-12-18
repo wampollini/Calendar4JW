@@ -1,0 +1,9 @@
+name = "caldav-proxy"
+main = "caldav-proxy.js"
+compatibility_date = "2024-12-18"
+
+# Account ID (da sostituire con il tuo dopo il login)
+# account_id = "YOUR_ACCOUNT_ID"
+
+# Nome del worker (endpoint sarà: https://caldav-proxy.YOUR_SUBDOMAIN.workers.dev)
+workers_dev = true

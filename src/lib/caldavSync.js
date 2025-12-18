@@ -9,9 +9,8 @@ function getAuthHeader(username, password) {
   return `Basic ${credentials}`;
 }
 
-// URL del proxy Supabase per CalDAV (da environment variables)
-const SUPABASE_CALDAV_PROXY = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/caldav-proxy`;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// URL del proxy Cloudflare per CalDAV (da environment variables)
+const CLOUDFLARE_CALDAV_PROXY = import.meta.env.VITE_CLOUDFLARE_CALDAV_PROXY || 'https://caldav-proxy.YOUR_SUBDOMAIN.workers.dev';
 
 // Richiesta HTTP diretta (senza proxy) - bypassa CORS su mobile
 async function makeDirectHttpRequest(url, method, headers, body) {
@@ -96,18 +95,17 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
   }
 }
 
-// Richiesta tramite proxy Supabase
+// Richiesta tramite proxy Cloudflare
 async function makeProxyRequest(url, method, headers, body) {
   const startTime = Date.now();
   try {
     console.log(`[HTTP via Proxy] ${method} ${url}`);
     
     const response = await CapacitorHttp.request({
-      url: SUPABASE_CALDAV_PROXY,
+      url: CLOUDFLARE_CALDAV_PROXY,
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY
+        'Content-Type': 'application/json'
       },
       data: {
         url: url,
@@ -406,9 +404,12 @@ export async function syncCalDAVEvents(accountId, calendarIds = []) {
 
     const account = JSON.parse(accountJson);
     console.log('[CalDAV Sync] Account loaded:', account.accountName);
+    console.log('[CalDAV Sync] Account has calendars:', account.calendars ? account.calendars.length : 0);
     
     // Decripta password se necessario
+    console.log('[CalDAV Sync] Decrypting password...');
     const password = account.encrypted ? await decryptPassword(account.password) : account.password;
+    console.log('[CalDAV Sync] Password decrypted, starting sync...');
     
     const allEvents = [];
     
@@ -440,6 +441,7 @@ export async function syncCalDAVEvents(accountId, calendarIds = []) {
       try {
         console.log('[CalDAV Sync] Fetching events from:', calendar.displayName);
         console.log('[CalDAV Sync] Calendar URL:', calendar.url);
+        console.log('[CalDAV Sync] Preparing calendar-query REPORT...');
         
         // Usa calendar-query REPORT con solo getetag per ottenere lista eventi
         const reportBody = `<?xml version="1.0" encoding="UTF-8"?>

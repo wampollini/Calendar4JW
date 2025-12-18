@@ -60,18 +60,23 @@ export async function encryptPassword(password) {
 // Decripta una stringa
 export async function decryptPassword(encryptedPassword) {
   try {
+    console.log('[Crypto] Starting decryption...');
     const key = await getEncryptionKey();
+    console.log('[Crypto] Encryption key obtained');
     const combined = Uint8Array.from(atob(encryptedPassword), c => c.charCodeAt(0));
+    console.log('[Crypto] Encrypted data decoded, length:', combined.length);
     
     const iv = combined.slice(0, 12);
     const data = combined.slice(12);
     
+    console.log('[Crypto] Calling crypto.subtle.decrypt...');
     const decryptedData = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv },
       key,
       data
     );
     
+    console.log('[Crypto] Decryption successful');
     return new TextDecoder().decode(decryptedData);
   } catch (error) {
     console.error('[Crypto] Errore decriptazione:', error);
