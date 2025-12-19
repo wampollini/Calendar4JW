@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Settings, Trash2, Edit2, Cloud, CloudOff, RefreshCw, Menu, X, Search, Clock, Share2, Paperclip, Sun, Moon, Monitor, Download, Upload, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Settings, Trash2, Edit2, Cloud, CloudOff, RefreshCw, Menu, X, Search, Clock, Share2, Paperclip, Sun, Moon, Monitor, Download, Upload, Eye, EyeOff, HelpCircle, QrCode } from 'lucide-react';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Preferences } from '@capacitor/preferences';
 import { connectCalDAV, syncCalDAVEvents, getCalDAVAccounts, disconnectCalDAV, createCalDAVEvent, deleteCalDAVEvent } from './lib/caldavSync';
 import { exportEventsToICS, downloadICS, readICSFile } from './lib/icsUtils';
+import { Html5Qrcode } from 'html5-qrcode';
+import { helpContent } from './helpContent';
 
 const t = {
   it: { 
@@ -115,6 +117,9 @@ const CalendarApp = () => {
   const [touchEnd, setTouchEnd] = useState(null);
   const fileInputRef = useRef(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const qrReaderRef = useRef(null);
   
   const [caldavForm, setCaldavForm] = useState({
     serverUrl: '', username: '', password: '', accountName: ''
@@ -1048,6 +1053,94 @@ const CalendarApp = () => {
     }
   };
 
+  // QR Code Functions
+  const parseQRCode = (qrData) => {
+    try {
+      // Parse caldav://username:password@server.com/path or https://server.com/... format
+      let url = qrData;
+      let username = '';
+      let password = '';
+      
+      // Check if it's a caldav:// URL
+      if (qrData.startsWith('caldav://')) {
+        url = qrData.replace('caldav://', 'https://');
+      }
+      
+      // Try to extract credentials from URL
+      const urlObj = new URL(url);
+      if (urlObj.username) {
+        username = decodeURIComponent(urlObj.username);
+      }
+      if (urlObj.password) {
+        password = decodeURIComponent(urlObj.password);
+      }
+      
+      // Reconstruct server URL without credentials
+      const serverUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+      
+      return { serverUrl, username, password };
+    } catch (error) {
+      console.error('QR parse error:', error);
+      return null;
+    }
+  };
+
+  const startQRScan = async () => {
+    try {
+      setShowQRScanner(true);
+      
+      // Wait for DOM to render
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      qrReaderRef.current = html5QrCode;
+      
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+          const parsed = parseQRCode(decodedText);
+          if (parsed) {
+            setCaldavForm(prev => ({
+              ...prev,
+              serverUrl: parsed.serverUrl,
+              username: parsed.username,
+              password: parsed.password
+            }));
+            alert(tr.qrScanSuccess);
+            stopQRScan();
+          } else {
+            alert(tr.qrScanError);
+          }
+        },
+        (errorMessage) => {
+          // Ignore scan errors (just no QR detected yet)
+        }
+      );
+    } catch (err) {
+      console.error('QR scan error:', err);
+      alert(tr.qrScanError + ': ' + err.message);
+      setShowQRScanner(false);
+    }
+  };
+
+  const stopQRScan = () => {
+    if (qrReaderRef.current) {
+      qrReaderRef.current.stop().then(() => {
+        qrReaderRef.current = null;
+        setShowQRScanner(false);
+      }).catch((err) => {
+        console.error('Stop QR error:', err);
+        setShowQRScanner(false);
+      });
+    } else {
+      setShowQRScanner(false);
+    }
+  };
+
   const connectCaldav = async () => {
     if (!caldavForm.serverUrl || !caldavForm.username || !caldavForm.password || !caldavForm.accountName) {
       alert('Compila tutti i campi');
@@ -1734,6 +1827,19 @@ const CalendarApp = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-3">❓ {tr.help}</label>
+                <button
+                  onClick={() => {
+                    setShowSettings(false);
+                    setShowHelp(true);
+                  }}
+                  className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition flex items-center justify-center gap-2">
+                  <HelpCircle className="w-5 h-5" />
+                  {tr.help}
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1922,6 +2028,18 @@ const CalendarApp = () => {
                   <div className={`p-3 ${settings.theme === 'light' ? 'bg-blue-50 border-blue-200' : 'bg-blue-900/30 border-blue-700'} border rounded-lg text-sm`}>
                     💡 Per Nextcloud: <code className="font-mono">https://tuoserver.com</code>
                   </div>
+                  
+                  <button
+                    onClick={startQRScan}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition shadow flex items-center justify-center gap-2">
+                    <QrCode className="w-5 h-5" />
+                    {tr.scanQR}
+                  </button>
+                  
+                  <div className="text-center text-sm text-gray-500">
+                    {tr.orManual}
+                  </div>
+                  
                   <input type="text" value={caldavForm.accountName} 
                     onChange={(e) => setCaldavForm({ ...caldavForm, accountName: e.target.value })}
                     placeholder={tr.caldavAccountName} 
@@ -2008,6 +2126,58 @@ const CalendarApp = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {showQRScanner && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-[60]">
+          <div className={`${cardBg} rounded-lg w-[90%] max-w-md p-4 shadow-2xl`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold flex items-center gap-2">
+                <QrCode className="w-6 h-6" />
+                {tr.scanQR}
+              </h3>
+              <button onClick={stopQRScan}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div id="qr-reader" className="w-full rounded-lg overflow-hidden"></div>
+            <button
+              onClick={stopQRScan}
+              className="w-full mt-4 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition">
+              {tr.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[60]">
+          <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+            <div className={`p-4 border-b ${borderClass} flex items-center justify-between sticky top-0 ${cardBg}`}>
+              <h3 className="text-xl font-semibold flex items-center gap-2">
+                <HelpCircle className="w-6 h-6" />
+                {tr.help}
+              </h3>
+              <button onClick={() => setShowHelp(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-6">
+              {helpContent[language].sections.map((section, index) => (
+                <div key={index} className={`p-4 ${settings.theme === 'light' ? 'bg-gray-50' : 'bg-gray-800'} rounded-lg`}>
+                  <h4 className="text-lg font-bold mb-3 flex items-center gap-2">
+                    <span className="text-2xl">{section.icon}</span>
+                    {section.title}
+                  </h4>
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: section.content }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -47,7 +47,13 @@ export const translations = {
     coVisitEnd: 'Visita CO (fine)',
     selectEventType: 'Tipo evento',
     days: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'],
-    months: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
+    months: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'],
+    help: 'Guida',
+    scanQR: '📷 Scansiona QR',
+    orManual: 'oppure inserisci manualmente',
+    qrScanSuccess: 'QR scansionato! Verifica i dati e tocca Connetti.',
+    qrScanError: 'Errore scansione QR. Riprova o inserisci manualmente.',
+    qrScanCancelled: 'Scansione annullata'
   },
   es: {
     title: 'Calendar4jw',
@@ -97,7 +103,13 @@ export const translations = {
     coVisitEnd: 'CO (fin)',
     selectEventType: 'Tipo',
     days: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-    months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+    help: 'Ayuda',
+    scanQR: '📷 Escanear QR',
+    orManual: 'o introduce manualmente',
+    qrScanSuccess: '¡QR escaneado! Verifica los datos y toca Conectar.',
+    qrScanError: 'Error al escanear QR. Intenta de nuevo o introduce manualmente.',
+    qrScanCancelled: 'Escaneo cancelado'
   },
   en: {
     title: 'Calendar4jw',
@@ -147,6 +159,12 @@ export const translations = {
     coVisitEnd: 'CO (end)',
     selectEventType: 'Type',
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    help: 'Help',
+    scanQR: '📷 Scan QR',
+    orManual: 'or enter manually',
+    qrScanSuccess: 'QR scanned! Verify data and tap Connect.',
+    qrScanError: 'QR scan error. Try again or enter manually.',
+    qrScanCancelled: 'Scan cancelled'
   }
 };
