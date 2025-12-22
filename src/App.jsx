@@ -213,13 +213,18 @@ const CalendarApp = () => {
   const syncGoogle = async () => {
     setSyncing(true);
     try {
+      console.log('[Google] Starting sign in...');
       const user = await GoogleAuth.signIn();
+      console.log('[Google] Sign in result:', user);
+      
       if (!user || !user.authentication || !user.authentication.accessToken) {
+        console.error('[Google] No access token received');
         throw new Error('Autenticazione fallita');
       }
       
       const accessToken = user.authentication.accessToken;
       const userEmail = user.email;
+      console.log('[Google] Signed in as:', userEmail);
       
       // Trova se esiste già un account Google per questo email
       const existingGoogleAccount = accounts.find(a => a.email === userEmail && a.name.startsWith('Google'));
@@ -287,7 +292,9 @@ const CalendarApp = () => {
         alert(`✅ ${googleEvents.length} eventi sincronizzati per ${userEmail}!`);
       }
     } catch (err) {
-      alert('❌ Errore sync: ' + err.message);
+      console.error('[Google] Error during sync:', err);
+      console.error('[Google] Error stack:', err.stack);
+      alert('❌ Errore sync: ' + (err.message || JSON.stringify(err)));
     } finally {
       setSyncing(false);
     }
@@ -360,16 +367,17 @@ const CalendarApp = () => {
         
         // Aggiungi gli account CalDAV all'array accounts per renderli visibili
         setAccounts(prev => {
-          // Mantieni solo Google (id: 1) e aggiungi CalDAV
-          const googleOnly = prev.filter(a => a.id === 1);
+          // Mantieni tutti gli account Google esistenti e aggiungi CalDAV
+          const existingGoogle = prev.filter(a => a.name?.startsWith('Google'));
           const caldavAsAccounts = caldavAccs.map(ca => ({
             id: parseInt(ca.id),
             name: ca.accountName || 'CalDAV',
             color: '#34a853',
             active: true
           }));
-          console.log('[App] Accounts finali:', [...googleOnly, ...caldavAsAccounts].map(a => ({ id: a.id, name: a.name })));
-          return [...googleOnly, ...caldavAsAccounts];
+          const mergedAccounts = [...existingGoogle, ...caldavAsAccounts];
+          console.log('[App] Accounts finali:', mergedAccounts.map(a => ({ id: a.id, name: a.name })));
+          return mergedAccounts;
         });
         
         // Sincronizzazione automatica ogni 30 minuti
