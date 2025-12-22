@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "690512444966",
+    "project_id": "calendar4jw-dd791",
+    "storage_bucket": "calendar4jw-dd791.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:690512444966:android:6b2820066b20a3df0f30e7",
+        "android_client_info": {
+          "package_name": "com.calendar4jw.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyjSBi_LaVcTZHjd4M33BlIrmKUqkJYOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

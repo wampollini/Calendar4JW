@@ -312,21 +312,42 @@ const CalendarApp = () => {
     const savedHours = localStorage.getItem('calendar4jw_service_hours');
     if (savedHours) setServiceHours(JSON.parse(savedHours));
     
-    // NON caricare accounts da localStorage - li ricostruiamo sempre
-    // Partiamo solo con Google
-    setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
+    // Carica accounts salvati (Google + CalDAV)
+    const savedAccounts = localStorage.getItem('calendar4jw_accounts');
+    if (savedAccounts) {
+      try {
+        const loadedAccounts = JSON.parse(savedAccounts);
+        if (loadedAccounts.length > 0) {
+          setAccounts(loadedAccounts);
+        } else {
+          // Default a Google se non ci sono account
+          setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
+        }
+      } catch (e) {
+        console.error('[App] Error loading accounts:', e);
+        setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
+      }
+    } else {
+      // Default a Google se non ci sono account salvati
+      setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
+    }
     
     const savedEvents = localStorage.getItem('calendar4jw_events');
     if (savedEvents) {
-      const loadedEvents = JSON.parse(savedEvents);
-      // Assicura che tutti gli eventi Google abbiano accountId: 1
-      const fixedEvents = loadedEvents.map(evt => {
-        if (evt.googleId && !evt.accountId) {
-          return { ...evt, accountId: 1 };
-        }
-        return evt;
-      });
-      setEvents(fixedEvents);
+      try {
+        const loadedEvents = JSON.parse(savedEvents);
+        // Assicura che tutti gli eventi Google abbiano accountId: 1
+        const fixedEvents = loadedEvents.map(evt => {
+          if (evt.googleId && !evt.accountId) {
+            return { ...evt, accountId: 1 };
+          }
+          return evt;
+        });
+        setEvents(fixedEvents);
+        console.log('[App] Loaded events from localStorage:', fixedEvents.length);
+      } catch (e) {
+        console.error('[App] Error loading events:', e);
+      }
     }
     
     const savedCaldav = localStorage.getItem('calendar4jw_caldav');
@@ -394,7 +415,12 @@ const CalendarApp = () => {
     localStorage.setItem('calendar4jw_service_hours', JSON.stringify(serviceHours));
   }, [serviceHours]);
 
-  // NON salvare accounts in localStorage - li ricostruiamo sempre da Google + CalDAV
+  useEffect(() => {
+    if (accounts.length > 0) {
+      console.log('[App] Saving accounts to localStorage:', accounts.length);
+      localStorage.setItem('calendar4jw_accounts', JSON.stringify(accounts));
+    }
+  }, [accounts]);
 
   // Helper function per rilevare e renderizzare HTML
   const isHTML = (str) => {
