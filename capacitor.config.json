@@ -1,5 +1,5 @@
 {
-  "appId": "com.calendar4jw.app",
+  "appId": "com.jw.calendar",
   "appName": "Calendar4jw",
   "webDir": "dist",
   "server": {
@@ -9,7 +9,7 @@
   "plugins": {
     "GoogleAuth": {
       "scopes": ["profile", "email", "https://www.googleapis.com/auth/calendar"],
-      "serverClientId": "149382287239-3vlds2tnv8l5hrludrhdbn5rabar1197.apps.googleusercontent.com",
+      "serverClientId": "278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com",
       "forceCodeForRefreshToken": true
     },
     "CapacitorHttp": {

@@ -712,6 +712,10 @@ export async function createCalDAVEvent(accountId, calendarUrlOrEventUrl, event,
     if (event.recurring && event.recurring !== 'none') {
       const freq = event.recurring.toUpperCase();
       rrule = `RRULE:FREQ=${freq}`;
+      const interval = event.recurringInterval || 1;
+      if (interval > 1) {
+        rrule += `;INTERVAL=${interval}`;
+      }
       if (event.recurringEndDate) {
         // UNTIL deve avere formato YYYYMMDDTHHMMSSZ per eventi con ora, o YYYYMMDD per eventi tutto il giorno
         const untilDate = event.recurringEndDate.replace(/-/g, '');

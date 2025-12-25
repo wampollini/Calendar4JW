@@ -142,7 +142,7 @@ const CalendarApp = () => {
   const [newEvent, setNewEvent] = useState({
     title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', 
     accountId: 1, eventType: 'regular', attachments: [], notifyBefore: 15, 
-    recurring: 'none', recurringEndDate: ''
+    recurring: 'none', recurringEndDate: '', recurringInterval: 1
   });
 
   const [accounts, setAccounts] = useState([
@@ -213,24 +213,50 @@ const CalendarApp = () => {
   const syncGoogle = async () => {
     setSyncing(true);
     try {
-      console.log('[Google] Starting sign in...');
-      const user = await GoogleAuth.signIn();
-      console.log('[Google] Sign in result:', user);
+      // Controlla se c'è già un account Google connesso con token salvato
+      const savedAccounts = localStorage.getItem('calendar4jw_accounts');
+      const allAccounts = savedAccounts ? JSON.parse(savedAccounts) : accounts;
+      const existingGoogleAccount = allAccounts.find(a => a.name.startsWith('Google') && a.connected);
       
-      if (!user || !user.authentication || !user.authentication.accessToken) {
-        console.error('[Google] No access token received');
-        throw new Error('Autenticazione fallita');
+      let accessToken = null;
+      let userEmail = null;
+      
+      if (existingGoogleAccount) {
+        // Prova a usare il token esistente
+        const savedToken = localStorage.getItem(`calendar4jw_google_token_${existingGoogleAccount.id}`);
+        const savedEmail = localStorage.getItem(`calendar4jw_google_user_${existingGoogleAccount.id}`);
+        
+        if (savedToken && savedEmail) {
+          console.log('[Google] Using existing token for:', savedEmail);
+          accessToken = savedToken;
+          userEmail = savedEmail;
+        }
       }
       
-      const accessToken = user.authentication.accessToken;
-      const userEmail = user.email;
-      console.log('[Google] Signed in as:', userEmail);
+      // Se non c'è un token salvato, fai il login
+      if (!accessToken) {
+        console.log('[Google] Starting sign in...');
+        const user = await GoogleAuth.signIn();
+        console.log('[Google] Sign in result:', user);
+        
+        if (!user || !user.authentication || !user.authentication.accessToken) {
+          console.error('[Google] No access token received');
+          throw new Error('Autenticazione fallita');
+        }
+        
+        accessToken = user.authentication.accessToken;
+        userEmail = user.email;
+        console.log('[Google] Signed in as:', userEmail);
+      }
       
-      // Trova se esiste già un account Google per questo email
-      const existingGoogleAccount = accounts.find(a => a.email === userEmail && a.name.startsWith('Google'));
-      const googleAccountId = existingGoogleAccount ? existingGoogleAccount.id : (
-        // Trova il primo ID libero >= 1 per nuovi account Google
-        Math.max(1, ...accounts.filter(a => a.name.startsWith('Google')).map(a => a.id), 0) + 1
+      // Trova o crea account Google
+      const existingAccount = allAccounts.find(a => a.email === userEmail && a.name.startsWith('Google'));
+      
+      // Il primo account Google ha sempre ID 1
+      const googleAccountId = existingAccount ? existingAccount.id : (
+        allAccounts.some(a => a.id === 1) 
+          ? Math.max(1, ...allAccounts.filter(a => a.name.startsWith('Google')).map(a => a.id), 0) + 1
+          : 1
       );
       
       // Fetch eventi da Google Calendar (ultimi 6 mesi e prossimi 12 mesi)
@@ -285,10 +311,24 @@ const CalendarApp = () => {
             active: true,
             connected: true
           }]);
+        } else {
+          // Aggiorna account esistente per assicurarsi che sia connesso
+          setAccounts(prev => prev.map(a => 
+            a.id === existingGoogleAccount.id 
+              ? { ...a, connected: true, active: true }
+              : a
+          ));
         }
         
         localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
         localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
+        setGoogleUserId(userEmail); // Imposta lo stato per mostrare i pulsanti
+        
+        // Aggiorna il calendario predefinito con l'ID dell'account Google appena connesso
+        if (!existingGoogleAccount) {
+          setSettings(prev => ({ ...prev, defaultCalendar: googleAccountId }));
+        }
+        
         alert(`✅ ${googleEvents.length} eventi sincronizzati per ${userEmail}!`);
       }
     } catch (err) {
@@ -301,6 +341,34 @@ const CalendarApp = () => {
   };
 
   const connectGoogle = async () => {
+    await syncGoogle();
+  };
+
+  const disconnectGoogle = async (accountId) => {
+    const account = accounts.find(a => a.id === accountId);
+    if (!account) return;
+    
+    if (!window.confirm(`Disconnettere ${account.name}? Gli eventi sincronizzati verranno rimossi.`)) return;
+    
+    // Rimuovi token ed eventi per questo account specifico
+    localStorage.removeItem(`calendar4jw_google_token_${accountId}`);
+    localStorage.removeItem(`calendar4jw_google_user_${accountId}`);
+    setEvents(prev => prev.filter(e => e.accountId !== accountId));
+    
+    // Rimuovi solo questo account
+    setAccounts(prev => prev.filter(a => a.id !== accountId));
+    
+    // Aggiorna googleUserId solo se non ci sono più account Google
+    const remainingGoogleAccounts = accounts.filter(a => a.name.startsWith('Google') && a.id !== accountId);
+    if (remainingGoogleAccounts.length === 0) {
+      setGoogleUserId(null);
+      localStorage.removeItem('calendar4jw_google_user');
+    }
+    
+    alert(`✅ ${account.name} disconnesso`);
+  };
+
+  const addGoogleAccount = async () => {
     await syncGoogle();
   };
 
@@ -324,19 +392,17 @@ const CalendarApp = () => {
     if (savedAccounts) {
       try {
         const loadedAccounts = JSON.parse(savedAccounts);
-        if (loadedAccounts.length > 0) {
-          setAccounts(loadedAccounts);
-        } else {
-          // Default a Google se non ci sono account
-          setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
-        }
+        // Filtra eventuali account Google generici senza email
+        const validAccounts = loadedAccounts.filter(acc => 
+          !acc.name.startsWith('Google') || acc.email
+        );
+        setAccounts(validAccounts);
       } catch (e) {
         console.error('[App] Error loading accounts:', e);
-        setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
+        setAccounts([]);
       }
     } else {
-      // Default a Google se non ci sono account salvati
-      setAccounts([{ id: 1, name: 'Google', color: '#4285f4', active: true }]);
+      setAccounts([]);
     }
     
     const savedEvents = localStorage.getItem('calendar4jw_events');
@@ -399,7 +465,7 @@ const CalendarApp = () => {
     
     // Inizializza GoogleAuth
     GoogleAuth.initialize({
-      clientId: '149382287239-3vlds2tnv8l5hrludrhdbn5rabar1197.apps.googleusercontent.com',
+      clientId: '278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com',
       scopes: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
       grantOfflineAccess: true
     });
@@ -650,6 +716,7 @@ const CalendarApp = () => {
     const occurrences = [];
     const startDate = new Date(baseEvent.date);
     const endDate = baseEvent.recurringEndDate ? new Date(baseEvent.recurringEndDate) : new Date(startDate.getFullYear() + 1, startDate.getMonth(), startDate.getDate());
+    const interval = baseEvent.recurringInterval || 1;
     
     let currentDate = new Date(startDate);
     let instanceCount = 0;
@@ -665,25 +732,40 @@ const CalendarApp = () => {
       
       instanceCount++;
       
-      // Incrementa in base alla frequenza
+      // Incrementa in base alla frequenza e intervallo
       switch (baseEvent.recurring) {
         case 'daily':
-          currentDate.setDate(currentDate.getDate() + 1);
+          currentDate.setDate(currentDate.getDate() + interval);
           break;
         case 'weekly':
-          currentDate.setDate(currentDate.getDate() + 7);
+          currentDate.setDate(currentDate.getDate() + (7 * interval));
           break;
         case 'monthly':
-          currentDate.setMonth(currentDate.getMonth() + 1);
+          currentDate.setMonth(currentDate.getMonth() + interval);
           break;
         case 'yearly':
-          currentDate.setFullYear(currentDate.getFullYear() + 1);
+          currentDate.setFullYear(currentDate.getFullYear() + interval);
           break;
       }
     }
     
     console.log(`[expandRecurrence] Espanse ${occurrences.length} occorrenze per ${baseEvent.title}`);
     return occurrences;
+  };
+
+  // Helper per trovare un account valido
+  const getValidAccountId = () => {
+    // Carica accounts da localStorage
+    const savedAccounts = localStorage.getItem('calendar4jw_accounts');
+    const allAccounts = savedAccounts ? JSON.parse(savedAccounts) : accounts;
+    
+    // Prova a usare defaultCalendar se esiste
+    if (allAccounts.find(a => a.id === settings.defaultCalendar)) {
+      return settings.defaultCalendar;
+    }
+    
+    // Altrimenti usa il primo account disponibile
+    return allAccounts.length > 0 ? allAccounts[0].id : 1;
   };
 
   const handleSave = async () => {
@@ -695,11 +777,16 @@ const CalendarApp = () => {
     
     console.log('[handleSave] Salvando evento:', evt);
     console.log('[handleSave] Account ID selezionato:', newEvent.accountId, 'tipo:', typeof newEvent.accountId);
-    console.log('[handleSave] Accounts disponibili:', accounts.map(a => ({ id: a.id, tipo: typeof a.id, name: a.name })));
+    console.log('[handleSave] Accounts disponibili:', JSON.stringify(accounts));
+    
+    // Carica accounts da localStorage per assicurarsi di avere i dati più aggiornati
+    const savedAccounts = localStorage.getItem('calendar4jw_accounts');
+    const allAccounts = savedAccounts ? JSON.parse(savedAccounts) : accounts;
+    console.log('[handleSave] Accounts da localStorage:', JSON.stringify(allAccounts));
     
     // Trova l'account selezionato (confronta sia come numero che come stringa)
-    const selectedAccount = accounts.find(a => a.id === newEvent.accountId || a.id === parseInt(newEvent.accountId));
-    console.log('[handleSave] Account trovato:', selectedAccount);
+    const selectedAccount = allAccounts.find(a => a.id === newEvent.accountId || a.id === parseInt(newEvent.accountId));
+    console.log('[handleSave] Account trovato:', JSON.stringify(selectedAccount));
     
     if (!selectedAccount) {
       console.error('[handleSave] ERRORE: Account non trovato!');
@@ -710,9 +797,9 @@ const CalendarApp = () => {
     let savedToCloud = false;
     
     // Salvataggio su Google Calendar
-    if (selectedAccount.name === 'Google' || newEvent.accountId === 1) {
+    if (selectedAccount.name === 'Google' || selectedAccount.name.startsWith('Google')) {
       try {
-        const token = localStorage.getItem('calendar4jw_google_token');
+        const token = localStorage.getItem(`calendar4jw_google_token_${selectedAccount.id}`);
         if (token) {
           const startDateTime = newEvent.startTime 
             ? `${newEvent.date}T${newEvent.startTime}:00` 
@@ -737,6 +824,10 @@ const CalendarApp = () => {
           if (newEvent.recurring && newEvent.recurring !== 'none') {
             const freq = newEvent.recurring.toUpperCase();
             let rrule = `RRULE:FREQ=${freq}`;
+            const interval = newEvent.recurringInterval || 1;
+            if (interval > 1) {
+              rrule += `;INTERVAL=${interval}`;
+            }
             if (newEvent.recurringEndDate) {
               // Google vuole UNTIL nel formato YYYYMMDDTHHMMSSZ
               const untilDate = newEvent.recurringEndDate.replace(/-/g, '');
@@ -774,7 +865,7 @@ const CalendarApp = () => {
               const user = await GoogleAuth.signIn();
               if (user && user.authentication && user.authentication.accessToken) {
                 const newToken = user.authentication.accessToken;
-                localStorage.setItem('calendar4jw_google_token', newToken);
+                localStorage.setItem(`calendar4jw_google_token_${selectedAccount.id}`, newToken);
                 
                 // Riprova la richiesta con il nuovo token
                 const retryRes = await fetch(url, {
@@ -800,9 +891,9 @@ const CalendarApp = () => {
             } catch (refreshErr) {
               console.error('❌ Refresh token fallito:', refreshErr);
               alert('⚠️ Sessione Google scaduta. Effettua nuovamente il login dal menu Impostazioni.');
-              localStorage.removeItem('calendar4jw_google_token');
+              localStorage.removeItem(`calendar4jw_google_token_${selectedAccount.id}`);
               setAccounts(prev => prev.map(acc => 
-                acc.id === 1 ? { ...acc, connected: false } : acc
+                acc.id === selectedAccount.id ? { ...acc, connected: false } : acc
               ));
             }
           } else {
@@ -885,7 +976,8 @@ const CalendarApp = () => {
                 endDate: newEvent.endDate || newEvent.date,
                 endTime: newEvent.endTime,
                 recurring: newEvent.recurring,
-                recurringEndDate: newEvent.recurringEndDate
+                recurringEndDate: newEvent.recurringEndDate,
+                recurringInterval: newEvent.recurringInterval || 1
               }, editingEvent?.caldavUrl ? true : false); // passa flag isUpdate
               
               if (result.success) {
@@ -914,10 +1006,14 @@ const CalendarApp = () => {
       }
     }
     
-    // Salva in locale solo se è stato salvato sul cloud
+    // Avvisa se non salvato sul cloud, ma procedi comunque con salvataggio locale per eventi ricorrenti
     if (!savedToCloud) {
-      console.log('⚠️ Evento non salvato sul cloud, salto il salvataggio locale');
-      return;
+      console.log('⚠️ Evento non salvato sul cloud, ma salvo localmente');
+      if (newEvent.recurring === 'none') {
+        // Solo eventi singoli richiedono salvataggio cloud
+        alert('⚠️ Errore: impossibile salvare l\'evento sul cloud. Verifica la connessione.');
+        return;
+      }
     }
     
     if (editingEvent) {
@@ -939,7 +1035,7 @@ const CalendarApp = () => {
     
     console.log('[handleSave] Evento salvato, chiusura modal');
     setShowEventModal(false);
-    setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '' });
+    setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '', recurringInterval: 1 });
   };
 
   const handleDelete = async (eventId) => {
@@ -947,9 +1043,9 @@ const CalendarApp = () => {
     const event = events.find(e => e.id === eventId);
     
     // Elimina da Google Calendar
-    if (event?.googleId) {
+    if (event?.googleId && event?.accountId) {
       try {
-        const token = localStorage.getItem('calendar4jw_google_token');
+        const token = localStorage.getItem(`calendar4jw_google_token_${event.accountId}`);
         if (token) {
           await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${event.googleId}`, {
             method: 'DELETE',
@@ -1304,7 +1400,7 @@ const CalendarApp = () => {
             </button>
             <button onClick={() => { 
               setEditingEvent(null); 
-              setNewEvent({ ...newEvent, date: formatDate(selectedDate), eventType: 'regular', attachments: [], accountId: settings.defaultCalendar }); 
+              setNewEvent({ ...newEvent, date: formatDate(selectedDate), eventType: 'regular', attachments: [], accountId: getValidAccountId() }); 
               setShowDayView(false); 
               setShowEventModal(true); 
             }} className="p-2 rounded-lg hover:bg-gray-700">
@@ -1488,7 +1584,7 @@ const CalendarApp = () => {
               </button>
             ))}
           </div>
-          <button onClick={() => { setNewEvent({ ...newEvent, date: formatDate(new Date()), attachments: [], accountId: settings.defaultCalendar }); setShowEventModal(true); }}
+          <button onClick={() => { setNewEvent({ ...newEvent, date: formatDate(new Date()), attachments: [], accountId: getValidAccountId() }); setShowEventModal(true); }}
             className="px-3 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 text-sm hover:bg-blue-700 transition shadow">
             <Plus className="w-4 h-4" />{tr.newEvent}
           </button>
@@ -1545,50 +1641,43 @@ const CalendarApp = () => {
                   <span className="font-semibold">Google Calendar</span>
                 </div>
               </div>
-              {accounts.filter(a => a.name && a.name.startsWith('Google')).length > 0 ? (
-                <div className="space-y-2">
-                  {accounts.filter(a => a.name && a.name.startsWith('Google')).map(acc => (
-                    <div key={acc.id} className={`p-3 ${settings.theme === 'light' ? 'bg-white' : 'bg-gray-600'} rounded-lg flex items-center justify-between`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{acc.email || acc.name}</div>
-                        <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          {events.filter(e => e.accountId === acc.id).length} eventi
-                        </div>
-                      </div>
-                      <div className="flex gap-2 ml-2">
-                        <button onClick={async () => { 
-                          await syncGoogle(); 
-                          setShowSystemMenu(false); 
-                        }}
-                          disabled={syncing}
-                          className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-1">
-                          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                          Sync
-                        </button>
-                        <button onClick={() => {
-                          if (window.confirm(`Disconnettere ${acc.email}?`)) {
-                            setAccounts(prev => prev.filter(a => a.id !== acc.id));
-                            setEvents(events.filter(e => e.accountId !== acc.id));
-                            localStorage.removeItem(`calendar4jw_google_token_${acc.id}`);
-                            localStorage.removeItem(`calendar4jw_google_user_${acc.id}`);
-                          }
-                        }}
-                          className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition flex items-center gap-1">
-                          <CloudOff className="w-4 h-4" />
-                          Rimuovi
-                        </button>
+              <div className="space-y-2">
+                {accounts.filter(acc => acc.name.startsWith('Google')).map(acc => (
+                  <div key={acc.id} className={`p-3 ${settings.theme === 'light' ? 'bg-white' : 'bg-gray-600'} rounded-lg`}>
+                    <div className="mb-2">
+                      <div className="font-medium text-sm">{acc.name}</div>
+                      <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        {acc.email}
                       </div>
                     </div>
-                  ))}
-                  <button onClick={() => { syncGoogle(); setShowSystemMenu(false); }}
-                    className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm">
-                    + Aggiungi Account Google
-                  </button>
-                </div>
-              ) : (
-                <button onClick={() => { syncGoogle(); setShowSystemMenu(false); }}
-                  className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Connetti</button>
-              )}
+                    <div className="flex gap-2">
+                      <button onClick={async () => { 
+                        await syncGoogle(); 
+                        setShowSystemMenu(false); 
+                      }}
+                        disabled={syncing}
+                        className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
+                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                        Sincronizza
+                      </button>
+                      <button onClick={async () => {
+                        await disconnectGoogle(acc.id);
+                        setShowSystemMenu(false);
+                      }}
+                        className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition flex items-center justify-center gap-1">
+                        <X className="w-4 h-4" />
+                        Disconnetti
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addGoogleAccount}
+                  disabled={syncing}
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Cloud className="w-5 h-5" />
+                  Aggiungi Account Google
+                </button>
+              </div>
             </div>
             
             <div className={`${settings.theme === 'light' ? 'bg-gray-100' : 'bg-gray-700'} rounded-lg p-4`}>
@@ -1983,6 +2072,20 @@ const CalendarApp = () => {
               
               {newEvent.recurring !== 'none' && (
                 <div>
+                  <label className="block text-sm font-medium mb-2">🔢 Ogni {newEvent.recurringInterval || 1} {
+                    newEvent.recurring === 'daily' ? (language === 'it' ? 'giorni' : language === 'es' ? 'días' : 'days') :
+                    newEvent.recurring === 'weekly' ? (language === 'it' ? 'settimane' : language === 'es' ? 'semanas' : 'weeks') :
+                    newEvent.recurring === 'monthly' ? (language === 'it' ? 'mesi' : language === 'es' ? 'meses' : 'months') :
+                    newEvent.recurring === 'yearly' ? (language === 'it' ? 'anni' : language === 'es' ? 'años' : 'years') : ''
+                  }</label>
+                  <input type="number" min="1" max="99" value={newEvent.recurringInterval || 1} 
+                    onChange={(e) => setNewEvent({ ...newEvent, recurringInterval: parseInt(e.target.value) || 1 })}
+                    className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+                </div>
+              )}
+              
+              {newEvent.recurring !== 'none' && (
+                <div>
                   <label className="block text-sm font-medium mb-2">📅 Fine ricorrenza</label>
                   <input type="date" value={newEvent.recurringEndDate} onChange={(e) => setNewEvent({ ...newEvent, recurringEndDate: e.target.value })}
                     placeholder="Opzionale" className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
@@ -2026,7 +2129,7 @@ const CalendarApp = () => {
               */}
             </div>
             <div className="flex gap-3 p-4 border-t ${borderClass}">
-              <button onClick={() => { setShowEventModal(false); setEditingEvent(null); setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '' }); }} 
+              <button onClick={() => { setShowEventModal(false); setEditingEvent(null); setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '', recurringInterval: 1 }); }} 
                 className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
                 {tr.cancel}
               </button>

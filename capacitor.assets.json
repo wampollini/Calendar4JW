@@ -1,0 +1,11 @@
+{
+  "android": {
+    "splash": {
+      "backgroundColor": "#ffffff",
+      "backgroundColorDark": "#000000"
+    },
+    "splashDark": {
+      "backgroundColor": "#000000"
+    }
+  }
+}

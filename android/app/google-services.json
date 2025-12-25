@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "690512444966",
-    "project_id": "calendar4jw-dd791",
-    "storage_bucket": "calendar4jw-dd791.firebasestorage.app"
+    "project_number": "278165724364",
+    "project_id": "calendar4jw-prod",
+    "storage_bucket": "calendar4jw-prod.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:690512444966:android:6b2820066b20a3df0f30e7",
+        "mobilesdk_app_id": "1:278165724364:android:cfe409076dfce121677669",
         "android_client_info": {
-          "package_name": "com.calendar4jw.app"
+          "package_name": "com.jw.calendar"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "278165724364-ab3abl2s2isbnnrraslalr2rcseu72mi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jw.calendar",
+            "certificate_hash": "794c36ff80acc16d21117c90ac3724cbd98002bf"
+          }
+        },
+        {
+          "client_id": "278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDyjSBi_LaVcTZHjd4M33BlIrmKUqkJYOo"
+          "current_key": "AIzaSyDNiLbh3M6oNZ3VmpdMM9GY6hmIoDq0eQI"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

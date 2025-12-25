@@ -8,10 +8,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace "com.calendar4jw.app"
-    compileSdk rootProject.ext.compileSdkVersion
+    namespace = "com.jw.calendar"
+    compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.calendar4jw.app"
+        applicationId = "com.jw.calendar"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
