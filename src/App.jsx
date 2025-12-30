@@ -23,7 +23,8 @@ const t = {
     defaultCalendar: 'Calendario predefinito', notificationTime: 'Tempo notifica predefinito',
     permissions: 'Permessi', searchEvents: 'Cerca eventi', serviceHours: 'Ore servizio',
     hours: 'Ore', visits: 'SB', addServiceHours: 'Aggiungi ore servizio',
-    monthTotal: 'Totale mese', share: 'Condividi', attachments: 'Allegati',
+    monthTotal: 'Totale mese', total: 'Totale', share: 'Condividi', attachments: 'Allegati',
+    allDay: 'Tutto il giorno',
     addAttachment: 'Aggiungi allegato', changeColor: 'Cambia colore', openInMaps: 'Apri in Mappe',
     notifyBefore: 'Notifica prima', minutes: 'minuti', days: 'giorni', week: 'settimana',
     viewDetails: 'Dettagli', close: 'Chiudi',
@@ -33,7 +34,10 @@ const t = {
     light: 'Chiaro', dark: 'Scuro', system: 'Sistema',
     weekStartsOn: 'Inizio settimana', monday: 'Lunedì', sunday: 'Domenica',
     exportICS: 'Esporta ICS', importICS: 'Importa ICS', exportAllEvents: 'Esporta tutti gli eventi', importFromFile: 'Importa da file',
-    importSuccess: 'eventi importati con successo', importError: 'Errore importazione file'
+    importSuccess: 'eventi importati con successo', importError: 'Errore importazione file',
+    qrScanSuccess: 'QR scansionato! Verifica i dati e tocca Connetti.',
+    qrScanError: 'Errore scansione QR. Riprova o inserisci manualmente.',
+    qrScanCancelled: 'Scansione annullata'
   },
   es: {
     title: 'Calendar4jw', today: 'Hoy', newEvent: 'Nuevo', accounts: 'Cuentas',
@@ -50,7 +54,8 @@ const t = {
     defaultCalendar: 'Calendario predeterminado', notificationTime: 'Tiempo de notificación',
     permissions: 'Permisos', searchEvents: 'Buscar eventos', serviceHours: 'Horas servicio',
     hours: 'Horas', visits: 'CB', addServiceHours: 'Añadir horas', 
-    monthTotal: 'Total mes', share: 'Compartir', attachments: 'Adjuntos',
+    monthTotal: 'Total mes', total: 'Total', share: 'Compartir', attachments: 'Adjuntos',
+    allDay: 'Todo el día',
     addAttachment: 'Añadir adjunto', changeColor: 'Cambiar color', openInMaps: 'Abrir en Mapas',
     notifyBefore: 'Notificar antes', minutes: 'minutos', days: 'días', week: 'semana',
     viewDetails: 'Detalles', close: 'Cerrar',
@@ -60,7 +65,10 @@ const t = {
     light: 'Claro', dark: 'Oscuro', system: 'Sistema',
     weekStartsOn: 'Inicio semana', monday: 'Lunes', sunday: 'Domingo',
     exportICS: 'Exportar ICS', importICS: 'Importar ICS', exportAllEvents: 'Exportar todos los eventos', importFromFile: 'Importar desde archivo',
-    importSuccess: 'eventos importados correctamente', importError: 'Error al importar archivo'
+    importSuccess: 'eventos importados correctamente', importError: 'Error al importar archivo',
+    qrScanSuccess: '¡QR escaneado! Verifica los datos y toca Conectar.',
+    qrScanError: 'Error al escanear QR. Intenta de nuevo o introduce manualmente.',
+    qrScanCancelled: 'Escaneo cancelado'
   },
   en: {
     title: 'Calendar4jw', today: 'Today', newEvent: 'New', accounts: 'Accounts',
@@ -77,7 +85,8 @@ const t = {
     defaultCalendar: 'Default calendar', notificationTime: 'Default notification time',
     permissions: 'Permissions', searchEvents: 'Search events', serviceHours: 'Service hours',
     hours: 'Hours', visits: 'BS', addServiceHours: 'Add service hours',
-    monthTotal: 'Month total', share: 'Share', attachments: 'Attachments',
+    monthTotal: 'Month total', total: 'Total', share: 'Share', attachments: 'Attachments',
+    allDay: 'All day',
     addAttachment: 'Add attachment', changeColor: 'Change color', openInMaps: 'Open in Maps',
     notifyBefore: 'Notify before', minutes: 'minutes', days: 'days', week: 'week',
     viewDetails: 'Details', close: 'Close',
@@ -87,7 +96,10 @@ const t = {
     light: 'Light', dark: 'Dark', system: 'System',
     weekStartsOn: 'Week starts on', monday: 'Monday', sunday: 'Sunday',
     exportICS: 'Export ICS', importICS: 'Import ICS', exportAllEvents: 'Export all events', importFromFile: 'Import from file',
-    importSuccess: 'events imported successfully', importError: 'Error importing file'
+    importSuccess: 'events imported successfully', importError: 'Error importing file',
+    qrScanSuccess: 'QR scanned! Verify data and tap Connect.',
+    qrScanError: 'QR scan error. Try again or enter manually.',
+    qrScanCancelled: 'Scan cancelled'
   }
 };
 
@@ -119,6 +131,7 @@ const CalendarApp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showQRScanner, setShowQRScanner] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
   const qrReaderRef = useRef(null);
   
   const [caldavForm, setCaldavForm] = useState({
@@ -142,7 +155,7 @@ const CalendarApp = () => {
   const [newEvent, setNewEvent] = useState({
     title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', 
     accountId: 1, eventType: 'regular', attachments: [], notifyBefore: 15, 
-    recurring: 'none', recurringEndDate: '', recurringInterval: 1
+    recurring: 'none', recurringEndDate: '', recurringInterval: 1, allDay: false
   });
 
   const [accounts, setAccounts] = useState([
@@ -1186,6 +1199,91 @@ const CalendarApp = () => {
   // QR Code Functions
   const parseQRCode = (qrData) => {
     try {
+      console.log('=== QR CODE PARSING START ===');
+      console.log('[QR] Raw data:', qrData);
+      console.log('[QR] Data length:', qrData.length);
+      console.log('[QR] First 50 chars:', qrData.substring(0, 50));
+      
+      // Check if it's Nextcloud format: nc://login/user:username&password:pass&server:https://...
+      if (qrData.startsWith('nc://login/')) {
+        const params = qrData.replace('nc://login/', '');
+        console.log('[QR] Params after removing prefix:', params);
+        
+        // Parsing manuale - splitta solo per i primi 2 &, il resto va al server
+        let username = '';
+        let password = '';
+        let serverUrl = '';
+        let accountName = 'Nextcloud';
+        
+        // Metodo più robusto: trova indici di user:, password:, server:
+        const userIdx = params.indexOf('user:');
+        const passIdx = params.indexOf('password:');
+        const serverIdx = params.indexOf('server:');
+        
+        console.log('[QR] Indices - user:', userIdx, 'password:', passIdx, 'server:', serverIdx);
+        
+        if (userIdx !== -1 && passIdx !== -1) {
+          // Estrai user: dalla posizione user: fino a &password
+          username = params.substring(userIdx + 5, passIdx - 1); // -1 per &
+          console.log('[QR] Extracted username:', username);
+        }
+        
+        if (passIdx !== -1 && serverIdx !== -1) {
+          // Estrai password: dalla posizione password: fino a &server
+          password = params.substring(passIdx + 9, serverIdx - 1); // -1 per &
+          console.log('[QR] Extracted password:', password ? '***' + password.slice(-4) : 'empty');
+        }
+        
+        if (serverIdx !== -1) {
+          // Estrai server: tutto dopo server:
+          serverUrl = params.substring(serverIdx + 7);
+          console.log('[QR] Extracted server (raw):', serverUrl);
+          
+          // Pulisci URL
+          try {
+            // Rimuovi eventuali spazi o caratteri strani all'inizio/fine
+            serverUrl = serverUrl.trim();
+            
+            const urlObj = new URL(serverUrl);
+            // Ricostruisci URL pulito: protocol + host + pathname (senza query/hash)
+            serverUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+            serverUrl = serverUrl.replace(/\/$/, ''); // Rimuovi trailing slash
+            console.log('[QR] Cleaned server URL:', serverUrl);
+            
+            // Estrai nome host per account name di default
+            try {
+              const hostname = urlObj.hostname.split('.')[0];
+              accountName = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+              console.log('[QR] Account name from hostname:', accountName);
+            } catch (e) {
+              accountName = 'Nextcloud';
+            }
+          } catch (e) {
+            console.error('[QR] URL parse error:', e);
+            // Se URL non è valido, usa la stringa originale pulita
+            serverUrl = serverUrl.trim().split('?')[0].split('#')[0].replace(/\/$/, '');
+          }
+          console.log('[QR] Final server URL:', serverUrl);
+        }
+        
+        console.log('[QR] === RESULT ===');
+        console.log('[QR] Username:', username);
+        console.log('[QR] Password:', password ? 'present (***' + password.slice(-4) + ')' : 'MISSING');
+        console.log('[QR] Server:', serverUrl);
+        console.log('[QR] Account:', accountName);
+        console.log('=== QR CODE PARSING END ===');
+        
+        const result = { serverUrl, username, password, accountName };
+        console.log('[QR] Returning object:', JSON.stringify({ 
+          serverUrl: result.serverUrl,
+          username: result.username, 
+          password: result.password ? '***' : 'empty',
+          accountName: result.accountName 
+        }));
+        
+        return result;
+      }
+      
       // Parse caldav://username:password@server.com/path or https://server.com/... format
       let url = qrData;
       let username = '';
@@ -1232,18 +1330,31 @@ const CalendarApp = () => {
           qrbox: { width: 250, height: 250 }
         },
         (decodedText) => {
+          console.log('[QR SCAN] Decoded text received:', decodedText);
           const parsed = parseQRCode(decodedText);
-          if (parsed) {
+          console.log('[QR SCAN] Parse result:', parsed);
+          
+          if (parsed && parsed.serverUrl && parsed.username) {
+            console.log('[QR SCAN] Valid data, updating form...');
+            // Genera nome account progressivo: CalDAV 1, CalDAV 2, ecc.
+            const accountNumber = caldavAccounts.length + 1;
+            const defaultAccountName = `CalDAV ${accountNumber}`;
+            
             setCaldavForm(prev => ({
               ...prev,
               serverUrl: parsed.serverUrl,
               username: parsed.username,
-              password: parsed.password
+              password: parsed.password,
+              accountName: defaultAccountName
             }));
-            alert(tr.qrScanSuccess);
+            const msg = `✅ ${tr.qrScanSuccess}\n\n🏷️ Nome account: "${defaultAccountName}" (puoi modificarlo)\n\n🌐 Server: ${parsed.serverUrl}\n👤 User: ${parsed.username}`;
+            console.log('[QR SCAN] Showing alert:', msg);
+            alert(msg);
             stopQRScan();
           } else {
-            alert(tr.qrScanError);
+            console.error('[QR SCAN] Parse failed or incomplete. Parsed data:', parsed);
+            console.error('[QR SCAN] serverUrl:', parsed?.serverUrl, 'username:', parsed?.username);
+            alert(tr.qrScanError + '\n\nDettagli: ' + JSON.stringify(parsed));
           }
         },
         (errorMessage) => {
@@ -1352,6 +1463,7 @@ const CalendarApp = () => {
   
   const syncCaldavEvents = async (accountId) => {
     setSyncing(true);
+    setSyncMessage('🔄 Sincronizzazione CalDAV in corso...');
     try {
       console.log('[App] Avvio sincronizzazione CalDAV per account:', accountId);
       // Non passiamo calendarIds, syncCalDAVEvents userà tutti i calendari salvati nell'account
@@ -1365,13 +1477,19 @@ const CalendarApp = () => {
         console.log('[App] Setting events:', newEvents.length, 'total (', result.events.length, 'CalDAV +', otherEvents.length, 'others)');
         console.log('[App] Sample CalDAV events:', result.events.slice(0, 3).map(e => ({ title: e.title, date: e.date })));
         setEvents(newEvents);
+        setSyncMessage('✅ Sincronizzazione completata!');
+        setTimeout(() => setSyncMessage(''), 2000);
         alert(`✅ ${result.events.length} eventi sincronizzati da ${result.calendarsCount} calendari!`);
       } else {
         console.error('[App] Errore sincronizzazione:', result.error);
+        setSyncMessage('❌ Errore sincronizzazione');
+        setTimeout(() => setSyncMessage(''), 3000);
         alert(`❌ ${result.error || 'Errore sconosciuto durante la sincronizzazione'}`);
       }
     } catch (err) {
       console.error('[App] Eccezione durante sincronizzazione:', err);
+      setSyncMessage('❌ Errore sincronizzazione');
+      setTimeout(() => setSyncMessage(''), 3000);
       alert('❌ Errore sync: ' + (err.message || err.toString() || 'Errore sconosciuto'));
     } finally {
       setSyncing(false);
@@ -1479,18 +1597,40 @@ const CalendarApp = () => {
             ))}
         </div>
 
-        {showServiceModal && selectedServiceDate && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
-            <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
-              <div className={`p-4 border-b ${borderClass}`}>
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-green-500" />
-                  {tr.addServiceHours}
-                </h3>
-                <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                  {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
-                </p>
-              </div>
+        {showServiceModal && selectedServiceDate && (() => {
+          const monthKey = `${selectedServiceDate.getFullYear()}-${String(selectedServiceDate.getMonth() + 1).padStart(2, '0')}`;
+          const monthHours = Object.keys(serviceHours)
+            .filter(k => k.startsWith(monthKey))
+            .reduce((sum, k) => sum + (serviceHours[k].hours || 0), 0);
+          const monthVisits = Object.keys(serviceHours)
+            .filter(k => k.startsWith(monthKey))
+            .reduce((sum, k) => sum + (serviceHours[k].visits || 0), 0);
+          
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
+              <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+                <div className={`p-4 border-b ${borderClass}`}>
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Clock className="w-6 h-6 text-green-500" />
+                    {tr.addServiceHours}
+                  </h3>
+                  <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                    {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
+                  </p>
+                  <div className={`mt-3 p-3 bg-green-600/20 border border-green-600 rounded-lg`}>
+                    <div className="text-sm font-semibold text-green-400 mb-1">{tr.monthTotal}</div>
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{tr.hours}:</span>
+                        <span className="text-lg font-bold">{monthHours}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{tr.visits}:</span>
+                        <span className="text-lg font-bold">{monthVisits}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               <div className="p-4 space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">⏰ {tr.hours}</label>
@@ -1530,13 +1670,22 @@ const CalendarApp = () => {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
     );
   }
 
   return (
     <div className={`min-h-screen ${bgClass} ${textClass} relative`}>
+      {syncMessage && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[200] animate-fade-in">
+          <div className={`${cardBg} px-6 py-3 rounded-lg shadow-2xl border ${borderClass} flex items-center gap-2`}>
+            <span className="text-sm font-medium">{syncMessage}</span>
+          </div>
+        </div>
+      )}
+      
       <div className={`${cardBg} p-4 sticky top-0 z-10 border-b ${borderClass} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold flex items-center gap-2">
@@ -1712,6 +1861,8 @@ const CalendarApp = () => {
                             await disconnectCalDAV(acc.id);
                             const accounts = await getCalDAVAccounts();
                             setCaldavAccounts(accounts);
+                            // Rimuovi anche dall'array accounts per il cambio colore
+                            setAccounts(prev => prev.filter(a => a.id !== parseInt(acc.id)));
                             setEvents(events.filter(e => e.accountId !== parseInt(acc.id)));
                           }
                         }}
@@ -2001,8 +2152,29 @@ const CalendarApp = () => {
                 </select>
               </div>
               
-              <input type="text" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                placeholder={tr.eventTitle} className={`w-full px-3 py-3 ${cardBg} border ${borderClass} rounded-lg font-medium focus:ring-2 focus:ring-blue-500 outline-none`} />
+              <div>
+                <label className="block text-sm font-bold mb-2 text-blue-400">✏️ {tr.eventTitle}</label>
+                <input type="text" value={newEvent.title} onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  placeholder={tr.eventTitle} 
+                  className={`w-full px-4 py-4 ${cardBg} border-2 ${borderClass} rounded-lg text-lg font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none`} />
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-blue-600/20 rounded-lg border border-blue-600/50">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <span>🌅</span> {tr.allDay}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setNewEvent({ ...newEvent, allDay: !newEvent.allDay, startTime: '', endTime: '' })}
+                  className={`relative w-14 h-7 rounded-full transition ${
+                    newEvent.allDay ? 'bg-blue-600' : settings.theme === 'light' ? 'bg-gray-300' : 'bg-gray-600'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition transform ${
+                    newEvent.allDay ? 'translate-x-7' : ''
+                  }`} />
+                </button>
+              </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -2017,18 +2189,20 @@ const CalendarApp = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium mb-1">{tr.startTime}</label>
-                  <input type="time" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
-                    className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+              {!newEvent.allDay && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">{tr.startTime}</label>
+                    <input type="time" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                      className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">{tr.endTime}</label>
+                    <input type="time" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                      className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">{tr.endTime}</label>
-                  <input type="time" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
-                    className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
-                </div>
-              </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium mb-2">📍 {tr.location}</label>
@@ -2129,7 +2303,7 @@ const CalendarApp = () => {
               */}
             </div>
             <div className="flex gap-3 p-4 border-t ${borderClass}">
-              <button onClick={() => { setShowEventModal(false); setEditingEvent(null); setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '', recurringInterval: 1 }); }} 
+              <button onClick={() => { setShowEventModal(false); setEditingEvent(null); setNewEvent({ title: '', date: '', endDate: '', startTime: '', endTime: '', location: '', description: '', accountId: settings.defaultCalendar, eventType: 'regular', attachments: [], notifyBefore: settings.defaultNotificationTime, recurring: 'none', recurringEndDate: '', recurringInterval: 1, allDay: false }); }} 
                 className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
                 {tr.cancel}
               </button>
@@ -2410,19 +2584,44 @@ const CalendarApp = () => {
         </div>
       )}
 
-      {showServiceModal && selectedServiceDate && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
-          <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
-            <div className={`p-4 border-b ${borderClass}`}>
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="w-6 h-6 text-green-500" />
-                {tr.addServiceHours}
-              </h3>
-              <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
-              </p>
-            </div>
-            <div className="p-4 space-y-4">
+      {showServiceModal && selectedServiceDate && (() => {
+        const monthKey = `${selectedServiceDate.getFullYear()}-${String(selectedServiceDate.getMonth() + 1).padStart(2, '0')}`;
+        const monthHours = Object.keys(serviceHours)
+          .filter(k => k.startsWith(monthKey))
+          .reduce((sum, k) => sum + (serviceHours[k].hours || 0), 0);
+        const monthVisits = Object.keys(serviceHours)
+          .filter(k => k.startsWith(monthKey))
+          .reduce((sum, k) => sum + (serviceHours[k].visits || 0), 0);
+        
+        const lastDayOfMonth = new Date(selectedServiceDate.getFullYear(), selectedServiceDate.getMonth() + 1, 0);
+        const isLastDay = selectedServiceDate.getDate() === lastDayOfMonth.getDate();
+        
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
+            <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+              <div className={`p-4 border-b ${borderClass}`}>
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-green-500" />
+                  {tr.addServiceHours}
+                </h3>
+                <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
+                </p>
+                <div className={`mt-3 p-3 bg-green-600/20 border border-green-600 rounded-lg`}>
+                  <div className="text-sm font-semibold text-green-400 mb-1">{tr.monthTotal}</div>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">{tr.hours}:</span>
+                      <span className="text-lg font-bold">{monthHours}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">{tr.visits}:</span>
+                      <span className="text-lg font-bold">{monthVisits}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">⏰ {tr.hours}</label>
                 <input
@@ -2456,7 +2655,8 @@ const CalendarApp = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

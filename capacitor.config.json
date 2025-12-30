@@ -7,6 +7,12 @@
     "cleartext": true
   },
   "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#1e293b",
+      "showSpinner": false
+    },
     "GoogleAuth": {
       "scopes": ["profile", "email", "https://www.googleapis.com/auth/calendar"],
       "serverClientId": "278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com",
