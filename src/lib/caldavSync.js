@@ -45,6 +45,13 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
   const startTime = Date.now();
   const domain = new URL(url).hostname;
   
+  console.log(`[makeHttpRequest] ${method} ${url}`);
+  console.log('[makeHttpRequest] Headers:', Object.keys(headers).reduce((acc, k) => {
+    acc[k] = k === 'Authorization' ? '***REDACTED***' : headers[k];
+    return acc;
+  }, {}));
+  console.log('[makeHttpRequest] Body length:', body ? body.length : 0);
+  
   // Controlla se abbiamo già un metodo funzionante per questo dominio
   const cachedMethod = accountId ? connectionMethodCache[accountId] : connectionMethodCache[domain];
   
@@ -54,7 +61,13 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
     return await makeProxyRequest(url, method, headers, body);
   }
   
+  if (cachedMethod === 'direct') {
+    console.log(`[HTTP] Dominio ${domain} usa metodo direct (cached)`);
+    return await makeDirectHttpRequest(url, method, headers, body);
+  }
+  
   // Prova prima richiesta diretta (solo su mobile, bypassa CORS)
+  console.log('[HTTP] Nessun metodo cached, provo direct first...');
   try {
     const directResult = await makeDirectHttpRequest(url, method, headers, body);
     
@@ -66,12 +79,13 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
     }
     
     const elapsed = Date.now() - startTime;
-    console.log(`[HTTP] Richiesta diretta completata (${elapsed}ms)`);
+    console.log(`[HTTP] ✅ Richiesta diretta completata (${elapsed}ms)`);
     return directResult;
     
   } catch (directError) {
     // Fallback su proxy Supabase
-    console.log(`[HTTP] Richiesta diretta fallita, uso proxy Supabase`);
+    console.log(`[HTTP] ❌ Richiesta diretta fallita:`, directError.message);
+    console.log(`[HTTP] Tento proxy Cloudflare...`);
     
     try {
       const proxyResult = await makeProxyRequest(url, method, headers, body);
@@ -84,12 +98,14 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
       }
       
       const elapsed = Date.now() - startTime;
-      console.log(`[HTTP] Richiesta via proxy completata (${elapsed}ms)`);
+      console.log(`[HTTP] ✅ Richiesta via proxy completata (${elapsed}ms)`);
       return proxyResult;
       
     } catch (proxyError) {
       const elapsed = Date.now() - startTime;
-      console.error(`[HTTP] Entrambi i metodi falliti dopo ${elapsed}ms`);
+      console.error(`[HTTP] ❌ Entrambi i metodi falliti dopo ${elapsed}ms`);
+      console.error('[HTTP] Direct error:', directError.message);
+      console.error('[HTTP] Proxy error:', proxyError.message);
       throw proxyError;
     }
   }
@@ -759,6 +775,10 @@ END:VCALENDAR`;
       console.log('[createCalDAVEvent] Nuovo Event URL:', eventUrl);
     }
     console.log('[createCalDAVEvent] iCalendar data:', icalData);
+    console.log('[createCalDAVEvent] Request headers:', {
+      'Authorization': '***REDACTED***',
+      'Content-Type': 'text/calendar; charset=utf-8'
+    });
     
     const response = await makeHttpRequest(
       eventUrl,
@@ -772,6 +792,7 @@ END:VCALENDAR`;
     );
 
     console.log('[createCalDAVEvent] Response status:', response.status);
+    console.log('[createCalDAVEvent] Response headers:', response.headers);
     console.log('[createCalDAVEvent] Response body:', response.data);
     
     if (response.status < 200 || response.status >= 300) {

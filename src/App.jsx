@@ -280,9 +280,40 @@ const CalendarApp = () => {
       
       const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime`;
       
-      const res = await fetch(url, {
+      let res = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
+      
+      // Se il token è scaduto (401), prova a fare refresh automatico
+      if (res.status === 401) {
+        console.warn('[Google] Token scaduto durante sync, tento refresh...');
+        try {
+          const user = await GoogleAuth.signIn();
+          if (user && user.authentication && user.authentication.accessToken) {
+            accessToken = user.authentication.accessToken;
+            userEmail = user.email;
+            localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
+            console.log('[Google] Token refreshed successfully');
+            
+            // Riprova la richiesta con il nuovo token
+            res = await fetch(url, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+          } else {
+            throw new Error('Refresh token fallito');
+          }
+        } catch (refreshErr) {
+          console.error('[Google] Refresh fallito:', refreshErr);
+          // Rimuovi token invalido e disconnetti account
+          if (existingGoogleAccount) {
+            localStorage.removeItem(`calendar4jw_google_token_${existingGoogleAccount.id}`);
+            setAccounts(prev => prev.map(acc => 
+              acc.id === existingGoogleAccount.id ? { ...acc, connected: false } : acc
+            ));
+          }
+          throw new Error('Sessione Google scaduta. Effettua nuovamente il login dal menu Impostazioni.');
+        }
+      }
       
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
