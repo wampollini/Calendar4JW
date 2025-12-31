@@ -52,6 +52,17 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
   }, {}));
   console.log('[makeHttpRequest] Body length:', body ? body.length : 0);
   
+  // Metodi WebDAV custom che richiedono il proxy (CapacitorHttp non li supporta)
+  const webdavMethods = ['PROPFIND', 'REPORT', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK', 'UNLOCK'];
+  
+  if (webdavMethods.includes(method.toUpperCase())) {
+    console.log(`[HTTP] Method ${method} requires proxy (WebDAV custom method)`);
+    const proxyResult = await makeProxyRequest(url, method, headers, body);
+    const elapsed = Date.now() - startTime;
+    console.log(`[HTTP] ✅ Proxy request completed (${elapsed}ms)`);
+    return proxyResult;
+  }
+  
   // Controlla se abbiamo già un metodo funzionante per questo dominio
   const cachedMethod = accountId ? connectionMethodCache[accountId] : connectionMethodCache[domain];
   
@@ -687,20 +698,58 @@ export async function createCalDAVEvent(accountId, calendarUrlOrEventUrl, event,
     console.log('[createCalDAVEvent] Is Update:', isUpdate);
     console.log('[createCalDAVEvent] Event data:', event);
     
+    console.log('[createCalDAVEvent] 1. Getting account from Preferences...');
     const { value: accountJson } = await Preferences.get({ key: `caldav_${accountId}` });
+    console.log('[createCalDAVEvent] 2. Account JSON length:', accountJson ? accountJson.length : 'NULL');
+    
     if (!accountJson) {
       console.error('[createCalDAVEvent] Account non trovato in Preferences');
       throw new Error('Account non trovato');
     }
 
+    console.log('[createCalDAVEvent] 3. Parsing account JSON...');
     const account = JSON.parse(accountJson);
+    console.log('[createCalDAVEvent] 4. Account parsed:', JSON.stringify(account, null, 2));
     console.log('[createCalDAVEvent] Account caricato:', account.accountName);
+    
+    // FORCE EXECUTION - This will show an alert to confirm code reaches this point
+    setTimeout(() => {
+      console.log('[createCalDAVEvent] ========================================');
+      console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT A - About to decrypt 🔴🔴🔴');
+      console.log('[createCalDAVEvent] ========================================');
+      console.log('[createCalDAVEvent] Checking decryptPassword function exists:', typeof decryptPassword);
+    }, 0);
 
     // Decripta password se necessario
-    const password = account.encrypted ? await decryptPassword(account.password) : account.password;
+    console.log('[createCalDAVEvent] 5. Starting password decryption, encrypted:', account.encrypted);
+    console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT B - After log 5 🔴🔴🔴');
+    
+    let password;
+    try {
+      console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT C - Inside try block 🔴🔴🔴');
+      if (account.encrypted) {
+        console.log('[createCalDAVEvent] Calling decryptPassword...');
+        password = await decryptPassword(account.password);
+        console.log('[createCalDAVEvent] decryptPassword returned successfully');
+      } else {
+        console.log('[createCalDAVEvent] Using plain password (not encrypted)');
+        password = account.password;
+      }
+      console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT D - After decryptPassword 🔴🔴🔴');
+      console.log('[createCalDAVEvent] 6. Password decrypted successfully');
+    } catch (decryptErr) {
+      console.log('[createCalDAVEvent] ❌❌❌ Password decryption FAILED ❌❌❌');
+      console.log('[createCalDAVEvent] Error:', decryptErr);
+      console.log('[createCalDAVEvent] Error message:', decryptErr.message);
+      console.log('[createCalDAVEvent] Error stack:', decryptErr.stack);
+      throw new Error(`Password decryption failed: ${decryptErr.message}`);
+    }
+    
+    console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT E - After password section 🔴🔴🔴');
 
     // Costruisci iCalendar
     // Se è un update, estrai lo UID dall'URL esistente, altrimenti creane uno nuovo
+    console.log('[createCalDAVEvent] 7. Generating UID...');
     let uid;
     if (isUpdate && calendarUrlOrEventUrl.endsWith('.ics')) {
       // Estrai UID dal nome file nell'URL
@@ -713,17 +762,22 @@ export async function createCalDAVEvent(accountId, calendarUrlOrEventUrl, event,
       console.log('[createCalDAVEvent] Nuovo UID generato:', uid);
     }
     
+    console.log('[createCalDAVEvent] 8. Preparing dates...');
     const startDate = event.startDate || event.date;
     const endDate = event.endDate || startDate;
+    console.log('[createCalDAVEvent] 9. 9. StartDate:', startDate, 'EndDate:', endDate);
     
+    console.log('[createCalDAVEvent] 10. Formatting dates for iCalendar...');
     const dtstart = event.startTime 
       ? `${startDate.replace(/-/g, '')}T${event.startTime.replace(/:/g, '')}00`
       : startDate.replace(/-/g, '');
     const dtend = event.endTime 
       ? `${endDate.replace(/-/g, '')}T${event.endTime.replace(/:/g, '')}00`
       : endDate.replace(/-/g, '');
+    console.log('[createCalDAVEvent] 11. DTSTART:', dtstart, 'DTEND:', dtend);
 
     // Costruisci regola ricorrenza se presente
+    console.log('[createCalDAVEvent] 12. Processing recurrence rules...');
     let rrule = '';
     if (event.recurring && event.recurring !== 'none') {
       const freq = event.recurring.toUpperCase();
@@ -747,6 +801,7 @@ export async function createCalDAVEvent(accountId, calendarUrlOrEventUrl, event,
       console.log('[createCalDAVEvent] RRULE generata:', rrule.trim());
     }
 
+    console.log('[createCalDAVEvent] 13. Building iCalendar data...');
     const icalData = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Calendar4JW//Calendar4JW//EN
@@ -803,7 +858,9 @@ END:VCALENDAR`;
     console.log('[createCalDAVEvent] ✅ Evento creato con successo');
     return { success: true, uid: uid, eventUrl: eventUrl };
   } catch (error) {
-    console.error('Errore creazione evento CalDAV:', error);
+    console.error('[createCalDAVEvent] ❌ ERRORE:', error);
+    console.error('[createCalDAVEvent] Error message:', error.message);
+    console.error('[createCalDAVEvent] Error stack:', error.stack);
     return { success: false, error: error.message };
   }
 }
