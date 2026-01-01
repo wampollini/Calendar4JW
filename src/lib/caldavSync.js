@@ -45,21 +45,18 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
   const startTime = Date.now();
   const domain = new URL(url).hostname;
   
-  console.log(`[makeHttpRequest] ${method} ${url}`);
-  console.log('[makeHttpRequest] Headers:', Object.keys(headers).reduce((acc, k) => {
-    acc[k] = k === 'Authorization' ? '***REDACTED***' : headers[k];
-    return acc;
-  }, {}));
-  console.log('[makeHttpRequest] Body length:', body ? body.length : 0);
+  console.log('[HTTP] makeHttpRequest called:', method, domain);
   
-  // Metodi WebDAV custom che richiedono il proxy (CapacitorHttp non li supporta)
+  // WebDAV methods + TUTTI i PUT verso CalDAV richiedono proxy
   const webdavMethods = ['PROPFIND', 'REPORT', 'PROPPATCH', 'MKCOL', 'COPY', 'MOVE', 'LOCK', 'UNLOCK'];
+  const isCalDAVServer = domain.includes('wahost.eu');
+  const isCalDAVPut = method === 'PUT' && isCalDAVServer;
   
-  if (webdavMethods.includes(method.toUpperCase())) {
-    console.log(`[HTTP] Method ${method} requires proxy (WebDAV custom method)`);
+  if (webdavMethods.includes(method.toUpperCase()) || isCalDAVPut) {
+    console.log(`[HTTP] ${method} richiede proxy (WebDAV/CalDAV) - usando proxy`);
     const proxyResult = await makeProxyRequest(url, method, headers, body);
     const elapsed = Date.now() - startTime;
-    console.log(`[HTTP] ✅ Proxy request completed (${elapsed}ms)`);
+    console.log(`[HTTP] Proxy completato (${elapsed}ms)`);
     return proxyResult;
   }
   
@@ -72,13 +69,8 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
     return await makeProxyRequest(url, method, headers, body);
   }
   
-  if (cachedMethod === 'direct') {
-    console.log(`[HTTP] Dominio ${domain} usa metodo direct (cached)`);
-    return await makeDirectHttpRequest(url, method, headers, body);
-  }
-  
+  console.log('[HTTP] Tentativo richiesta diretta...');
   // Prova prima richiesta diretta (solo su mobile, bypassa CORS)
-  console.log('[HTTP] Nessun metodo cached, provo direct first...');
   try {
     const directResult = await makeDirectHttpRequest(url, method, headers, body);
     
@@ -90,13 +82,12 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
     }
     
     const elapsed = Date.now() - startTime;
-    console.log(`[HTTP] ✅ Richiesta diretta completata (${elapsed}ms)`);
+    console.log(`[HTTP] Richiesta diretta completata (${elapsed}ms)`);
     return directResult;
     
   } catch (directError) {
     // Fallback su proxy Supabase
-    console.log(`[HTTP] ❌ Richiesta diretta fallita:`, directError.message);
-    console.log(`[HTTP] Tento proxy Cloudflare...`);
+    console.log(`[HTTP] Richiesta diretta fallita, uso proxy Supabase`);
     
     try {
       const proxyResult = await makeProxyRequest(url, method, headers, body);
@@ -109,14 +100,12 @@ async function makeHttpRequest(url, method, headers, body, accountId = null) {
       }
       
       const elapsed = Date.now() - startTime;
-      console.log(`[HTTP] ✅ Richiesta via proxy completata (${elapsed}ms)`);
+      console.log(`[HTTP] Richiesta via proxy completata (${elapsed}ms)`);
       return proxyResult;
       
     } catch (proxyError) {
       const elapsed = Date.now() - startTime;
-      console.error(`[HTTP] ❌ Entrambi i metodi falliti dopo ${elapsed}ms`);
-      console.error('[HTTP] Direct error:', directError.message);
-      console.error('[HTTP] Proxy error:', proxyError.message);
+      console.error(`[HTTP] Entrambi i metodi falliti dopo ${elapsed}ms`);
       throw proxyError;
     }
   }
@@ -127,6 +116,8 @@ async function makeProxyRequest(url, method, headers, body) {
   const startTime = Date.now();
   try {
     console.log(`[HTTP via Proxy] ${method} ${url}`);
+    console.log('[Proxy] Headers:', headers);
+    console.log('[Proxy] Body length:', body ? body.length : 0);
     
     const response = await CapacitorHttp.request({
       url: CLOUDFLARE_CALDAV_PROXY,
@@ -144,8 +135,12 @@ async function makeProxyRequest(url, method, headers, body) {
       readTimeout: 45000
     });
     
+    console.log('[Proxy] Response status:', response.status);
+    console.log('[Proxy] ProxyData:', response.data);
+    
     if (response.status === 200 && response.data) {
       const proxyData = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+      console.log('[Proxy] ProxyData.status:', proxyData.status);
       return {
         status: proxyData.status,
         data: proxyData.data,
@@ -337,10 +332,16 @@ export async function connectCalDAV(serverUrl, username, password, accountName) 
       throw new Error('Nessun calendario trovato');
     }
 
-    // Salva credenziali in storage sicuro (password criptata)
+    // Salva credenziali in localStorage (senza encryption per debug)
     const accountId = Date.now().toString();
-    const encryptedPassword = await encryptPassword(password);
     
+    localStorage.setItem('caldav_' + accountId + '_id', accountId);
+    localStorage.setItem('caldav_' + accountId + '_name', accountName || 'Nextcloud');
+    localStorage.setItem('caldav_' + accountId + '_serverUrl', baseUrl);
+    localStorage.setItem('caldav_' + accountId + '_username', username);
+    localStorage.setItem('caldav_' + accountId + '_password', password); // PLAINTEXT per debug
+    
+    // Mantieni anche in Preferences per compatibilità con lista account
     await Preferences.set({
       key: `caldav_${accountId}`,
       value: JSON.stringify({
@@ -348,8 +349,8 @@ export async function connectCalDAV(serverUrl, username, password, accountName) 
         accountName: accountName || 'Nextcloud',
         serverUrl: baseUrl,
         username: username,
-        password: encryptedPassword,
-        encrypted: true // Flag per sapere che è criptata
+        password: password,
+        encrypted: false
       })
     });
 
@@ -691,176 +692,72 @@ function parseDateTimeField(dtField) {
 // Crea evento su CalDAV
 export async function createCalDAVEvent(accountId, calendarUrlOrEventUrl, event, isUpdate = false) {
   try {
-    const action = isUpdate ? 'modifica' : 'creazione';
-    console.log(`[createCalDAVEvent] Inizio ${action} evento`);
-    console.log('[createCalDAVEvent] Account ID:', accountId);
-    console.log('[createCalDAVEvent] URL:', calendarUrlOrEventUrl);
-    console.log('[createCalDAVEvent] Is Update:', isUpdate);
-    console.log('[createCalDAVEvent] Event data:', event);
+    console.log('[createCalDAVEvent] START');
     
-    console.log('[createCalDAVEvent] 1. Getting account from Preferences...');
-    const { value: accountJson } = await Preferences.get({ key: `caldav_${accountId}` });
-    console.log('[createCalDAVEvent] 2. Account JSON length:', accountJson ? accountJson.length : 'NULL');
+    const aid = String(accountId);
+    const serverUrl = localStorage.getItem('caldav_' + aid + '_serverUrl');
+    const username = localStorage.getItem('caldav_' + aid + '_username');
+    const password = localStorage.getItem('caldav_' + aid + '_password');
     
-    if (!accountJson) {
-      console.error('[createCalDAVEvent] Account non trovato in Preferences');
-      throw new Error('Account non trovato');
+    if (!serverUrl || !username || !password) {
+      throw new Error('Dati account CalDAV mancanti');
     }
 
-    console.log('[createCalDAVEvent] 3. Parsing account JSON...');
-    const account = JSON.parse(accountJson);
-    console.log('[createCalDAVEvent] 4. Account parsed:', JSON.stringify(account, null, 2));
-    console.log('[createCalDAVEvent] Account caricato:', account.accountName);
+    const uid = Date.now() + '@calendar4jw';
     
-    // FORCE EXECUTION - This will show an alert to confirm code reaches this point
-    setTimeout(() => {
-      console.log('[createCalDAVEvent] ========================================');
-      console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT A - About to decrypt 🔴🔴🔴');
-      console.log('[createCalDAVEvent] ========================================');
-      console.log('[createCalDAVEvent] Checking decryptPassword function exists:', typeof decryptPassword);
-    }, 0);
-
-    // Decripta password se necessario
-    console.log('[createCalDAVEvent] 5. Starting password decryption, encrypted:', account.encrypted);
-    console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT B - After log 5 🔴🔴🔴');
-    
-    let password;
-    try {
-      console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT C - Inside try block 🔴🔴🔴');
-      if (account.encrypted) {
-        console.log('[createCalDAVEvent] Calling decryptPassword...');
-        password = await decryptPassword(account.password);
-        console.log('[createCalDAVEvent] decryptPassword returned successfully');
-      } else {
-        console.log('[createCalDAVEvent] Using plain password (not encrypted)');
-        password = account.password;
-      }
-      console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT D - After decryptPassword 🔴🔴🔴');
-      console.log('[createCalDAVEvent] 6. Password decrypted successfully');
-    } catch (decryptErr) {
-      console.log('[createCalDAVEvent] ❌❌❌ Password decryption FAILED ❌❌❌');
-      console.log('[createCalDAVEvent] Error:', decryptErr);
-      console.log('[createCalDAVEvent] Error message:', decryptErr.message);
-      console.log('[createCalDAVEvent] Error stack:', decryptErr.stack);
-      throw new Error(`Password decryption failed: ${decryptErr.message}`);
-    }
-    
-    console.log('[createCalDAVEvent] 🔴🔴🔴 CHECKPOINT E - After password section 🔴🔴🔴');
-
-    // Costruisci iCalendar
-    // Se è un update, estrai lo UID dall'URL esistente, altrimenti creane uno nuovo
-    console.log('[createCalDAVEvent] 7. Generating UID...');
-    let uid;
-    if (isUpdate && calendarUrlOrEventUrl.endsWith('.ics')) {
-      // Estrai UID dal nome file nell'URL
-      const urlParts = calendarUrlOrEventUrl.split('/');
-      const filename = urlParts[urlParts.length - 1];
-      uid = filename.replace('.ics', '');
-      console.log('[createCalDAVEvent] UID estratto da URL:', uid);
-    } else {
-      uid = `${Date.now()}@calendar4jw`;
-      console.log('[createCalDAVEvent] Nuovo UID generato:', uid);
-    }
-    
-    console.log('[createCalDAVEvent] 8. Preparing dates...');
     const startDate = event.startDate || event.date;
     const endDate = event.endDate || startDate;
-    console.log('[createCalDAVEvent] 9. 9. StartDate:', startDate, 'EndDate:', endDate);
     
-    console.log('[createCalDAVEvent] 10. Formatting dates for iCalendar...');
     const dtstart = event.startTime 
-      ? `${startDate.replace(/-/g, '')}T${event.startTime.replace(/:/g, '')}00`
-      : startDate.replace(/-/g, '');
+      ? startDate.replace(/-/g, '') + 'T' + event.startTime.replace(/:/g, '') + '00'
+      : startDate.replace(/-/g, '') + 'T000000';
     const dtend = event.endTime 
-      ? `${endDate.replace(/-/g, '')}T${event.endTime.replace(/:/g, '')}00`
-      : endDate.replace(/-/g, '');
-    console.log('[createCalDAVEvent] 11. DTSTART:', dtstart, 'DTEND:', dtend);
+      ? endDate.replace(/-/g, '') + 'T' + event.endTime.replace(/:/g, '') + '00'
+      : endDate.replace(/-/g, '') + 'T235959';
 
-    // Costruisci regola ricorrenza se presente
-    console.log('[createCalDAVEvent] 12. Processing recurrence rules...');
+    // Skip recurring per ora
     let rrule = '';
-    if (event.recurring && event.recurring !== 'none') {
-      const freq = event.recurring.toUpperCase();
-      rrule = `RRULE:FREQ=${freq}`;
-      const interval = event.recurringInterval || 1;
-      if (interval > 1) {
-        rrule += `;INTERVAL=${interval}`;
-      }
-      if (event.recurringEndDate) {
-        // UNTIL deve avere formato YYYYMMDDTHHMMSSZ per eventi con ora, o YYYYMMDD per eventi tutto il giorno
-        const untilDate = event.recurringEndDate.replace(/-/g, '');
-        if (event.startTime) {
-          // Evento con ora: aggiungi T235959Z per fine giornata
-          rrule += `;UNTIL=${untilDate}T235959Z`;
-        } else {
-          // Evento tutto il giorno
-          rrule += `;UNTIL=${untilDate}`;
-        }
-      }
-      rrule = `\n${rrule}`;
-      console.log('[createCalDAVEvent] RRULE generata:', rrule.trim());
-    }
 
-    console.log('[createCalDAVEvent] 13. Building iCalendar data...');
-    const icalData = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Calendar4JW//Calendar4JW//EN
-BEGIN:VEVENT
-UID:${uid}
-DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
-DTSTART:${dtstart}
-DTEND:${dtend}
-SUMMARY:${event.title || ''}
-DESCRIPTION:${event.description || ''}
-LOCATION:${event.location || ''}${rrule}
-END:VEVENT
-END:VCALENDAR`;
-
-    // PUT per creare/modificare evento via proxy
-    let eventUrl;
-    if (isUpdate && calendarUrlOrEventUrl.endsWith('.ics')) {
-      // Se è un update, usa l'URL esistente dell'evento
-      eventUrl = calendarUrlOrEventUrl;
-      console.log('[createCalDAVEvent] Uso URL esistente per modifica:', eventUrl);
-    } else {
-      // Se è un nuovo evento, costruisci l'URL
-      const baseUrl = calendarUrlOrEventUrl.endsWith('/') ? calendarUrlOrEventUrl : `${calendarUrlOrEventUrl}/`;
-      eventUrl = `${baseUrl}${uid}.ics`;
-      console.log('[createCalDAVEvent] Base URL:', baseUrl);
-      console.log('[createCalDAVEvent] Nuovo Event URL:', eventUrl);
+    const nl = String.fromCharCode(13, 10);
+    let icalData = 'BEGIN:VCALENDAR' + nl + 'VERSION:2.0' + nl + 'PRODID:-//Calendar4JW//Calendar4JW//EN' + nl + 'BEGIN:VEVENT' + nl + 'UID:' + uid + nl + 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' + nl + 'DTSTART:' + dtstart + nl + 'DTEND:' + dtend + nl;
+    
+    if (event.title) {
+      icalData = icalData + 'SUMMARY:' + event.title + nl;
     }
-    console.log('[createCalDAVEvent] iCalendar data:', icalData);
-    console.log('[createCalDAVEvent] Request headers:', {
-      'Authorization': '***REDACTED***',
-      'Content-Type': 'text/calendar; charset=utf-8'
-    });
+    if (event.description) {
+      icalData = icalData + 'DESCRIPTION:' + event.description + nl;
+    }
+    if (event.location) {
+      icalData = icalData + 'LOCATION:' + event.location + nl;
+    }
+    
+    icalData = icalData + rrule + 'END:VEVENT' + nl + 'END:VCALENDAR';
+
+    const eventUrl = calendarUrlOrEventUrl + uid + '.ics';
+    console.log('[createCalDAVEvent] Event URL:', eventUrl);
     
     const response = await makeHttpRequest(
       eventUrl,
       'PUT',
       {
-        'Authorization': getAuthHeader(account.username, password),
-        'Content-Type': 'text/calendar; charset=utf-8',
+        'Authorization': getAuthHeader(username, password),
+        'Content-Type': 'text/calendar',
       },
       icalData,
       accountId
     );
 
     console.log('[createCalDAVEvent] Response status:', response.status);
-    console.log('[createCalDAVEvent] Response headers:', response.headers);
-    console.log('[createCalDAVEvent] Response body:', response.data);
     
     if (response.status < 200 || response.status >= 300) {
       console.error('[createCalDAVEvent] Errore HTTP:', response.status);
-      throw new Error(`HTTP ${response.status}`);
+      throw new Error('HTTP ' + response.status);
     }
 
     console.log('[createCalDAVEvent] ✅ Evento creato con successo');
     return { success: true, uid: uid, eventUrl: eventUrl };
   } catch (error) {
-    console.error('[createCalDAVEvent] ❌ ERRORE:', error);
-    console.error('[createCalDAVEvent] Error message:', error.message);
-    console.error('[createCalDAVEvent] Error stack:', error.stack);
+    console.error('Errore creazione evento CalDAV:', error);
     return { success: false, error: error.message };
   }
 }

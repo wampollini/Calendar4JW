@@ -280,40 +280,9 @@ const CalendarApp = () => {
       
       const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime`;
       
-      let res = await fetch(url, {
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
-      
-      // Se il token è scaduto (401), prova a fare refresh automatico
-      if (res.status === 401) {
-        console.warn('[Google] Token scaduto durante sync, tento refresh...');
-        try {
-          const user = await GoogleAuth.signIn();
-          if (user && user.authentication && user.authentication.accessToken) {
-            accessToken = user.authentication.accessToken;
-            userEmail = user.email;
-            localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
-            console.log('[Google] Token refreshed successfully');
-            
-            // Riprova la richiesta con il nuovo token
-            res = await fetch(url, {
-              headers: { Authorization: `Bearer ${accessToken}` }
-            });
-          } else {
-            throw new Error('Refresh token fallito');
-          }
-        } catch (refreshErr) {
-          console.error('[Google] Refresh fallito:', refreshErr);
-          // Rimuovi token invalido e disconnetti account
-          if (existingGoogleAccount) {
-            localStorage.removeItem(`calendar4jw_google_token_${existingGoogleAccount.id}`);
-            setAccounts(prev => prev.map(acc => 
-              acc.id === existingGoogleAccount.id ? { ...acc, connected: false } : acc
-            ));
-          }
-          throw new Error('Sessione Google scaduta. Effettua nuovamente il login dal menu Impostazioni.');
-        }
-      }
       
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -963,55 +932,26 @@ const CalendarApp = () => {
         console.log('[handleSave] Account CalDAV selezionato:', account);
         
         if (account) {
-          const { value: accountJson } = await Preferences.get({ key: `caldav_${account.id}` });
+          // Calendari sono salvati in Preferences
+          const aid = String(account.id);
+          const accountJsonRaw = await Preferences.get({ key: 'caldav_' + aid });
+          const accountJson = accountJsonRaw.value;
+          console.log('[handleSave] CHECKPOINT 1');
+          
           if (accountJson) {
+            console.log('[handleSave] CHECKPOINT 2');
             const accountData = JSON.parse(accountJson);
+            console.log('[handleSave] CHECKPOINT 3');
             let calendars = accountData.calendars || [];
             
             console.log('[handleSave] Calendari nell\'account:', calendars);
-            console.log('[handleSave] Primo calendario dettagli:', JSON.stringify(calendars[0], null, 2));
             
-            // Se non ci sono calendari salvati, prova a ricaricarli
-            if (calendars.length === 0) {
-              console.log('[handleSave] Nessun calendario trovato, ricarico...');
-              const caldavData = caldavAccounts.find(a => a.id === account.id);
-              if (caldavData && caldavData.calendars) {
-                calendars = caldavData.calendars;
-              }
-            }
+            // Hardcode per evitare property access - usa URL diretto
+            const serverUrl = localStorage.getItem('caldav_' + newEvent.accountId + '_serverUrl');
+            const username = localStorage.getItem('caldav_' + newEvent.accountId + '_username');
+            const targetUrl = serverUrl + '/remote.php/dav/calendars/' + username + '/personal/';
             
-            // Filtra calendari validi (esclude directory base, inbox, outbox, trashbin)
-            const validCalendars = calendars.filter(cal => {
-              const id = cal.id || '';
-              const url = cal.url || '';
-              // Escludi calendari di sistema e la directory base
-              return !id.endsWith('/william/') && 
-                     !id.includes('/inbox') && 
-                     !id.includes('/outbox') && 
-                     !id.includes('/trashbin') &&
-                     !url.endsWith('/william/') &&
-                     !url.includes('/inbox') && 
-                     !url.includes('/outbox') && 
-                     !url.includes('/trashbin');
-            });
-            
-            console.log('[handleSave] Calendari validi filtrati:', validCalendars.length, 'su', calendars.length);
-            
-            // Usa il primo calendario valido disponibile
-            if (validCalendars.length > 0) {
-              const calendar = validCalendars[0];
-              const calendarUrl = calendar.url;
-              
-              console.log('[handleSave] Usando calendario:', calendar.displayName);
-              console.log('[handleSave] Calendar ID:', calendar.id);
-              console.log('[handleSave] URL calendario:', calendarUrl);
-              
-              // Se stiamo modificando un evento esistente con caldavUrl, usa quello
-              const targetUrl = editingEvent?.caldavUrl || calendarUrl;
-              console.log('[handleSave] Target URL per CalDAV:', targetUrl);
-              console.log('[handleSave] Editing event?:', !!editingEvent, 'caldavUrl:', editingEvent?.caldavUrl);
-              
-              const result = await createCalDAVEvent(account.id, targetUrl, {
+            const result = await createCalDAVEvent(newEvent.accountId, targetUrl, {
                 title: newEvent.title,
                 description: newEvent.description,
                 location: newEvent.location,
@@ -1032,10 +972,6 @@ const CalendarApp = () => {
                 console.error('❌ Errore salvataggio CalDAV:', result.error);
                 alert('⚠️ Errore nel salvataggio su CalDAV: ' + result.error);
               }
-            } else {
-              console.error('[handleSave] Nessun calendario CalDAV valido disponibile');
-              alert('⚠️ Nessun calendario CalDAV valido trovato. Seleziona almeno un calendario vero (non inbox/outbox/trashbin).');
-            }
           } else {
             console.error('[handleSave] Account JSON non trovato');
             alert('⚠️ Dati account CalDAV non trovati. Riconfigura l\'account.');
@@ -1050,14 +986,11 @@ const CalendarApp = () => {
       }
     }
     
-    // Avvisa se non salvato sul cloud, ma procedi comunque con salvataggio locale per eventi ricorrenti
+    // Avvisa se non salvato sul cloud, ma procedi comunque con salvataggio locale
     if (!savedToCloud) {
       console.log('⚠️ Evento non salvato sul cloud, ma salvo localmente');
-      if (newEvent.recurring === 'none') {
-        // Solo eventi singoli richiedono salvataggio cloud
-        alert('⚠️ Errore: impossibile salvare l\'evento sul cloud. Verifica la connessione.');
-        return;
-      }
+      // Mostra avviso ma non blocca il salvataggio locale
+      alert('⚠️ Evento salvato solo localmente. Errore sincronizzazione con il cloud.');
     }
     
     if (editingEvent) {
