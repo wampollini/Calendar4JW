@@ -4,4 +4,5 @@
     <string name="title_activity_main">calendar4jw</string>
     <string name="package_name">com.calendar4jw.app</string>
     <string name="custom_url_scheme">com.calendar4jw.app</string>
+    <string name="widget_description">Mostra gli eventi di oggi dal tuo calendario</string>
 </resources>

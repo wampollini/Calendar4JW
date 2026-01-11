@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     registerPlugin(GoogleAuth.class);
+    registerPlugin(WidgetSyncPlugin.class);
     
     // Enable WebView debugging for Chrome DevTools
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {

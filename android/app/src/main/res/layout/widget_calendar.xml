@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="@drawable/widget_background">
+
+    <!-- Header con data -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/widget_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="11 gennaio 2026"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#333333" />
+
+        <ImageButton
+            android:id="@+id/widget_refresh"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_popup_sync"
+            android:contentDescription="Aggiorna" />
+    </LinearLayout>
+
+    <!-- Eventi di oggi (testo semplice) -->
+    <TextView
+        android:id="@+id/widget_events_text"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Nessun evento oggi"
+        android:textSize="13sp"
+        android:textColor="#666666"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:scrollbars="vertical"
+        android:maxLines="20" />
+
+    <!-- Footer con link "Apri app" -->
+    <TextView
+        android:id="@+id/widget_open_app"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Apri calendario"
+        android:textSize="12sp"
+        android:textColor="#4285F4"
+        android:gravity="center"
+        android:paddingTop="8dp"
+        android:clickable="true"
+        android:focusable="true" />
+
+</LinearLayout>

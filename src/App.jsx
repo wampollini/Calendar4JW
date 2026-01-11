@@ -6,6 +6,8 @@ import { connectCalDAV, syncCalDAVEvents, getCalDAVAccounts, disconnectCalDAV, c
 import { exportEventsToICS, downloadICS, readICSFile } from './lib/icsUtils';
 import { Html5Qrcode } from 'html5-qrcode';
 import { helpContent } from './helpContent';
+import { updateWidgetData } from './lib/widgetSync';
+import { scheduleEventNotification, cancelEventNotification, updateAllNotifications, requestNotificationPermissions } from './lib/notifications';
 
 const t = {
   it: { 
@@ -523,14 +525,22 @@ const CalendarApp = () => {
     
     const savedUser = localStorage.getItem('calendar4jw_google_user');
     if (savedUser) setGoogleUserId(savedUser);
+    
+    // Richiedi permessi notifiche all'avvio
+    requestNotificationPermissions();
   }, []);
 
   useEffect(() => {
     if (events.length > 0) {
-      console.log('[App] Saving events to localStorage:', events.length);
       localStorage.setItem('calendar4jw_events', JSON.stringify(events));
+      
+      // Aggiorna widget Android se presenti
+      updateWidgetData(events).catch(() => {});
+      
+      // Aggiorna notifiche per tutti gli eventi
+      updateAllNotifications(events, settings.defaultNotificationTime || 15).catch(() => {});
     }
-  }, [events]);
+  }, [events, settings.defaultNotificationTime]);
 
   useEffect(() => {
     localStorage.setItem('calendar4jw_settings', JSON.stringify(settings));
@@ -1039,13 +1049,27 @@ const CalendarApp = () => {
       );
       // Espandi il nuovo evento
       const expandedEvents = expandRecurrence(evt);
-      setEvents([...eventsWithoutOld, ...expandedEvents]);
+      const updatedEvents = [...eventsWithoutOld, ...expandedEvents];
+      setEvents(updatedEvents);
       setEditingEvent(null);
+      
+      // Forza aggiornamento notifiche
+      setTimeout(() => {
+        updateAllNotifications(updatedEvents, settings.defaultNotificationTime || 15)
+          .catch(err => console.error('[handleSave] Errore aggiornamento notifiche:', err));
+      }, 500);
     } else {
       console.log('[handleSave] Aggiunta nuovo evento alla lista');
       // Espandi ricorrenze se presenti
       const expandedEvents = expandRecurrence(evt);
-      setEvents([...events, ...expandedEvents]);
+      const updatedEvents = [...events, ...expandedEvents];
+      setEvents(updatedEvents);
+      
+      // Forza aggiornamento notifiche
+      setTimeout(() => {
+        updateAllNotifications(updatedEvents, settings.defaultNotificationTime || 15)
+          .catch(err => console.error('[handleSave] Errore aggiornamento notifiche:', err));
+      }, 500);
     }
     
     console.log('[handleSave] Evento salvato, chiusura modal');
@@ -1089,6 +1113,9 @@ const CalendarApp = () => {
         console.error('Errore eliminazione CalDAV:', err);
       }
     }
+    
+    // Cancella la notifica dell'evento
+    await cancelEventNotification(eventId);
     
     setEvents(events.filter(e => e.id !== eventId));
   };
@@ -2101,6 +2128,25 @@ const CalendarApp = () => {
                   onChange={handleImportICS}
                   className="hidden"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-3">📱 Widget Android</label>
+                <button
+                  onClick={async () => {
+                    try {
+                      const result = await updateWidgetData(events);
+                      if (result && result.success) {
+                        alert('✅ Widget aggiornato con ' + events.length + ' eventi');
+                      }
+                    } catch (err) {
+                      alert('❌ Errore: ' + err.message);
+                    }
+                  }}
+                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2">
+                  <RefreshCw className="w-5 h-5" />
+                  Sincronizza Widget
+                </button>
               </div>
 
               <div>
