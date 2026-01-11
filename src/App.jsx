@@ -184,14 +184,21 @@ const CalendarApp = () => {
     const dateStr = formatDate(date);
     const filtered = events.filter(e => {
       const hasAccount = accounts.find(a => a.id === e.accountId)?.active;
-      if (e.date === dateStr && !hasAccount) {
-        console.log(`[App] Event filtered out - no active account found:`, {
-          eventTitle: e.title,
-          eventAccountId: e.accountId,
-          availableAccountIds: accounts.map(a => a.id)
-        });
+      if (!hasAccount) {
+        return false;
       }
-      return e.date === dateStr && hasAccount;
+      
+      // Eventi singoli o primo giorno di multi-giorno
+      if (e.date === dateStr) {
+        return true;
+      }
+      
+      // Eventi multi-giorno: verifica se la data è tra start e end
+      if (e.endDate && e.date < dateStr && dateStr <= e.endDate) {
+        return true;
+      }
+      
+      return false;
     });
     return filtered;
   };
@@ -280,9 +287,40 @@ const CalendarApp = () => {
       
       const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime`;
       
-      const res = await fetch(url, {
+      let res = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
+      
+      // Se il token è scaduto (401), prova a fare refresh automatico
+      if (res.status === 401) {
+        console.warn('[Google] Token scaduto durante sync, tento refresh...');
+        try {
+          const user = await GoogleAuth.signIn();
+          if (user && user.authentication && user.authentication.accessToken) {
+            accessToken = user.authentication.accessToken;
+            userEmail = user.email;
+            localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
+            console.log('[Google] Token refreshed successfully');
+            
+            // Riprova la richiesta con il nuovo token
+            res = await fetch(url, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+          } else {
+            throw new Error('Refresh token fallito');
+          }
+        } catch (refreshErr) {
+          console.error('[Google] Refresh fallito:', refreshErr);
+          // Rimuovi token invalido e disconnetti account
+          if (existingGoogleAccount) {
+            localStorage.removeItem(`calendar4jw_google_token_${existingGoogleAccount.id}`);
+            setAccounts(prev => prev.map(acc =>
+              acc.id === existingGoogleAccount.id ? { ...acc, connected: false } : acc
+            ));
+          }
+          throw new Error('Sessione Google scaduta. Effettua nuovamente il login dal menu Impostazioni.');
+        }
+      }
       
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -2148,7 +2186,7 @@ const CalendarApp = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">{tr.endDate}</label>
-                  <input type="date" value={newEvent.endDate} onChange={(e) => setNewEvent({ ...newEvent, endDate: e.target.value })}
+                  <input type="date" value={newEvent.endDate} min={newEvent.date} onChange={(e) => setNewEvent({ ...newEvent, endDate: e.target.value })}
                     placeholder="Opzionale" className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`} />
                 </div>
               </div>

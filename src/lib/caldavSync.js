@@ -638,8 +638,16 @@ function parseICalendar(icalData, accountId, calendarName, color) {
       }
       
       if (dtend) {
-        const { time } = parseDateTimeField(dtend);
+        const { date: endDate, time } = parseDateTimeField(dtend);
         event.endTime = time;
+        
+        // Per eventi all-day (senza time), DTEND è il giorno DOPO l'ultimo giorno
+        // Quindi dobbiamo sottrarre 1 giorno per avere la data finale reale
+        if (!time && endDate && event.date && endDate !== event.date) {
+          const endDateObj = new Date(endDate);
+          endDateObj.setDate(endDateObj.getDate() - 1);
+          event.endDate = endDateObj.toISOString().split('T')[0];
+        }
       }
 
       if (event.date) {
@@ -708,18 +716,41 @@ export async function createCalDAVEvent(accountId, calendarUrlOrEventUrl, event,
     const startDate = event.startDate || event.date;
     const endDate = event.endDate || startDate;
     
-    const dtstart = event.startTime 
-      ? startDate.replace(/-/g, '') + 'T' + event.startTime.replace(/:/g, '') + '00'
-      : startDate.replace(/-/g, '') + 'T000000';
-    const dtend = event.endTime 
-      ? endDate.replace(/-/g, '') + 'T' + event.endTime.replace(/:/g, '') + '00'
-      : endDate.replace(/-/g, '') + 'T235959';
+    // Per eventi all-day multi-giorno: usa VALUE=DATE e DTEND=giorno dopo ultimo giorno
+    const isAllDay = !event.startTime && !event.endTime;
+    let dtstart, dtend, dtStartLine, dtEndLine;
+    
+    if (isAllDay) {
+      // Formato DATE per eventi all-day
+      dtstart = startDate.replace(/-/g, '');
+      // DTEND deve essere il giorno DOPO l'ultimo giorno (RFC 5545)
+      const endDateObj = new Date(endDate);
+      endDateObj.setDate(endDateObj.getDate() + 1);
+      const nextDay = endDateObj.toISOString().split('T')[0];
+      dtend = nextDay.replace(/-/g, '');
+      dtStartLine = 'DTSTART;VALUE=DATE:' + dtstart;
+      dtEndLine = 'DTEND;VALUE=DATE:' + dtend;
+    } else {
+      // Formato DATE-TIME per eventi con orario
+      dtstart = startDate.replace(/-/g, '') + 'T' + event.startTime.replace(/:/g, '') + '00';
+      dtend = endDate.replace(/-/g, '') + 'T' + event.endTime.replace(/:/g, '') + '00';
+      dtStartLine = 'DTSTART:' + dtstart;
+      dtEndLine = 'DTEND:' + dtend;
+      console.log('[createCalDAVEvent] Timed event: dtstart=' + dtstart + ', dtend=' + dtend);
+    }
 
     // Skip recurring per ora
     let rrule = '';
 
     const nl = String.fromCharCode(13, 10);
-    let icalData = 'BEGIN:VCALENDAR' + nl + 'VERSION:2.0' + nl + 'PRODID:-//Calendar4JW//Calendar4JW//EN' + nl + 'BEGIN:VEVENT' + nl + 'UID:' + uid + nl + 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' + nl + 'DTSTART:' + dtstart + nl + 'DTEND:' + dtend + nl;
+    const now = new Date();
+    const isoString = now.toISOString();
+    const withoutDashes = isoString.replace(/-/g, '');
+    const withoutColons = withoutDashes.replace(/:/g, '');
+    const parts = withoutColons.split('.');
+    const dtstamp = parts[0] + 'Z';
+    
+    let icalData = 'BEGIN:VCALENDAR' + nl + 'VERSION:2.0' + nl + 'PRODID:-//Calendar4JW//Calendar4JW//EN' + nl + 'BEGIN:VEVENT' + nl + 'UID:' + uid + nl + 'DTSTAMP:' + dtstamp + nl + dtStartLine + nl + dtEndLine + nl;
     
     if (event.title) {
       icalData = icalData + 'SUMMARY:' + event.title + nl;
@@ -731,10 +762,15 @@ export async function createCalDAVEvent(accountId, calendarUrlOrEventUrl, event,
       icalData = icalData + 'LOCATION:' + event.location + nl;
     }
     
+    // Aggiungi notifica 15 minuti prima (VALARM)
+    icalData = icalData + 'BEGIN:VALARM' + nl + 'ACTION:DISPLAY' + nl + 'TRIGGER:-PT15M' + nl + 'DESCRIPTION:Promemoria' + nl + 'END:VALARM' + nl;
+    
     icalData = icalData + rrule + 'END:VEVENT' + nl + 'END:VCALENDAR';
 
     const eventUrl = calendarUrlOrEventUrl + uid + '.ics';
-    console.log('[createCalDAVEvent] Event URL:', eventUrl);
+    
+    console.log('[createCalDAVEvent] Sending to:', eventUrl);
+    console.log('[createCalDAVEvent] iCalendar length:', icalData.length);
     
     const response = await makeHttpRequest(
       eventUrl,
