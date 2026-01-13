@@ -172,11 +172,6 @@ export async function updateAllNotifications(events, defaultMinutesBefore = 15) 
 
     console.log(`[Notifications] Scheduled ${scheduled} notifications for ${futureEvents.length} future events`);
     
-    // Alert di debug
-    const skippedInfo = skipped.length > 0 ? `\n\nSKIP (${skipped.length}):\n${skipReasons.slice(0, 3).join('\n')}${skipReasons.length > 3 ? `\n...+${skipReasons.length - 3}` : ''}` : '';
-    const errorInfo = errors.length > 0 ? `\n\nERRORI:\n${errors.slice(0, 2).join('\n')}` : '';
-    alert(`🔔 Debug:\nTotali: ${events.length}\nFuturi: ${futureEvents.length}\nSchedulate: ${scheduled}${skippedInfo}${errorInfo}`);
-    
     return scheduled;
 
   } catch (error) {
