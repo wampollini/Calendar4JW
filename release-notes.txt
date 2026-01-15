@@ -1,5 +1,9 @@
-Widget Android e sistema notifiche implementati:
-- Widget home screen mostra eventi oggi + 7 giorni
-- Auto-refresh widget ogni 30 minuti
+Nuove funzionalità e miglioramenti:
+- Widget Android con eventi oggi + 7 giorni
+- Auto-refresh widget ogni 30 minuti + refresh manuale
 - Notifiche locali 15 minuti prima degli eventi
-- Fix compatibilità ID Java int e caratteri speciali
+- Tipo evento "Appuntamento" aggiunto (IT/ES/EN)
+- Calendario predefinito preservato dopo riconnessione Google
+- Migliore gestione token Google scaduti con auto-refresh
+- Fix compatibilità ID notifiche Java int
+- Fix caratteri speciali nelle notifiche

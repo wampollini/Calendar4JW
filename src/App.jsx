@@ -166,6 +166,7 @@ const CalendarApp = () => {
 
   const eventTypeTemplates = {
     regular: { title: '' },
+    appointment: { title: '' },
     circuitAssembly: { title: 'Assemblea di Circoscrizione' },
     regionalConvention: { title: 'Congresso Regionale' },
     memorial: { title: 'Commemorazione' },
@@ -377,10 +378,8 @@ const CalendarApp = () => {
         localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
         setGoogleUserId(userEmail); // Imposta lo stato per mostrare i pulsanti
         
-        // Aggiorna il calendario predefinito con l'ID dell'account Google appena connesso
-        if (!existingGoogleAccount) {
-          setSettings(prev => ({ ...prev, defaultCalendar: googleAccountId }));
-        }
+        // Mantieni il calendario predefinito corrente (non cambiare automaticamente)
+        // L'utente può cambiarlo manualmente dalle impostazioni se vuole
         
         alert(`✅ ${googleEvents.length} eventi sincronizzati per ${userEmail}!`);
       }
@@ -2192,6 +2191,7 @@ const CalendarApp = () => {
                   setNewEvent({ ...newEvent, eventType: type, title: template.title || newEvent.title });
                 }} className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
                   <option value="regular">{tr.regularEvent}</option>
+                  <option value="appointment">{tr.appointment}</option>
                   <option value="circuitAssembly">{tr.circuitAssembly}</option>
                   <option value="regionalConvention">{tr.regionalConvention}</option>
                   <option value="memorial">{tr.memorial}</option>
