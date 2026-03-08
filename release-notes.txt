@@ -1,9 +1,30 @@
-Nuove funzionalità e miglioramenti:
-- Widget Android con eventi oggi + 7 giorni
-- Auto-refresh widget ogni 30 minuti + refresh manuale
-- Notifiche locali 15 minuti prima degli eventi
-- Tipo evento "Appuntamento" aggiunto (IT/ES/EN)
-- Calendario predefinito preservato dopo riconnessione Google
-- Migliore gestione token Google scaduti con auto-refresh
+Versione 1.1 - Nuove funzionalità e miglioramenti:
+
+UI/UX:
+- Fix: Risolto problema sovrapposizione status bar con header app
+- Status bar trasparente con icone di sistema visibili
+- Icone scure su status bar per migliore visibilità
+- Gestione corretta safe-area per dispositivi con notch
+
+Autenticazione Google:
+- Refresh automatico token Google (validità 55 minuti)
+- Verifica scadenza token prima di ogni chiamata API
+- Tentativo refresh silenzioso con GoogleAuth.refresh()
+- Riduzione drastica richieste login ripetute
+
+Widget Android:
+- Tema dinamico (chiaro/scuro) sincronizzato con app
+- Sfondo chiaro (#FFFFFF) e scuro (#1E1E1E)
+- Colori testo adattivi al tema
+- Visualizzazione prossimo evento futuro
+- Formato intelligente: "Oggi 10:00", "Domani 14:30", "5 Feb 09:00"
+- Aggiornamento automatico ogni 30 minuti
+
+Funzionalità esistenti:
+- Eventi oggi + prossimi 7 giorni
+- Notifiche 15 minuti prima degli eventi
+- Tipo evento "Appuntamento" (IT/ES/EN)
+- Calendario predefinito preservato
+- Refresh manuale widget
 - Fix compatibilità ID notifiche Java int
 - Fix caratteri speciali nelle notifiche
