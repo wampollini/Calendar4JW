@@ -1560,7 +1560,7 @@ const CalendarApp = () => {
     
     return (
       <div className={`min-h-screen ${bgClass} ${textClass}`}>
-        <div className={`${cardBg} p-4 flex items-center justify-between border-b ${borderClass} sticky top-0 z-10`}>
+        <div className={`app-header ${cardBg} p-4 flex items-center justify-between border-b ${borderClass} sticky top-0 z-10`}>
           <button onClick={() => setShowDayView(false)}><ChevronLeft className="w-6 h-6" /></button>
           <h2 className="font-bold">{selectedDate.getDate()} {tr.months[selectedDate.getMonth()]}</h2>
           <div className="flex gap-2">
@@ -1738,7 +1738,7 @@ const CalendarApp = () => {
         </div>
       )}
       
-      <div className={`${cardBg} p-4 sticky top-0 z-10 border-b ${borderClass} shadow-sm`}>
+      <div className={`app-header ${cardBg} p-4 sticky top-0 z-10 border-b ${borderClass} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold flex items-center gap-2">
             <img src="/icon.png" alt="Calendar4JW" className="w-8 h-8 rounded-lg shadow-sm" />
