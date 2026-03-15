@@ -1092,8 +1092,8 @@ const CalendarApp = () => {
       }
     }
     
-    // Avvisa se non salvato sul cloud, ma procedi comunque con salvataggio locale
-    if (!savedToCloud) {
+    // Avvisa se non salvato sul cloud (solo se l'utente aveva scelto un account cloud)
+    if (!savedToCloud && selectedAccount.name !== 'Locale') {
       console.log('⚠️ Evento non salvato sul cloud, ma salvo localmente');
       // Mostra avviso ma non blocca il salvataggio locale
       alert('⚠️ Evento salvato solo localmente. Errore sincronizzazione con il cloud.');

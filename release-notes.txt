@@ -1,6 +1,11 @@
-Versione 1.1 (Build 3) - 15 Marzo 2026
+Versione 1.1 (Build 4) - 15 Marzo 2026
 
 Account e Salvataggio:
+- Fix: Rimosso avviso errore cloud quando si salva su account Locale
+- L'avviso di sincronizzazione cloud appare solo se l'utente ha scelto un account cloud (Google/CalDAV) e la sincronizzazione fallisce
+- Comportamento locale è ora silenzioso come previsto
+
+Build 3 (15 Marzo 2026):
 - Fix: Account predefinito ora è "Locale" invece di "Google"
 - Gli account Google partono dall'ID 2 per evitare conflitti
 - Corretta logica salvataggio: account locale non richiede login Google
