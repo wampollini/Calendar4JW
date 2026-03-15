@@ -308,10 +308,16 @@ const CalendarApp = () => {
         
         accessToken = user.authentication.accessToken;
         userEmail = user.email;
-        // Salva token con scadenza (55 minuti)
+        
+        // Determina ID account (prima di usarlo per salvare)
+        const tempAccountId = existingGoogleAccount?.id || 1;
+        
+        // Salva token, email e scadenza (55 minuti)
         const expiry = Date.now() + (55 * 60 * 1000);
-        localStorage.setItem(`calendar4jw_google_token_expiry_${existingGoogleAccount.id || 1}`, expiry.toString());
-        console.log('[Google] Signed in as:', userEmail);
+        localStorage.setItem(`calendar4jw_google_token_${tempAccountId}`, accessToken);
+        localStorage.setItem(`calendar4jw_google_user_${tempAccountId}`, userEmail);
+        localStorage.setItem(`calendar4jw_google_token_expiry_${tempAccountId}`, expiry.toString());
+        console.log('[Google] Signed in as:', userEmail, '- token saved with ID', tempAccountId);
       }
       
       // Trova o crea account Google
@@ -340,11 +346,24 @@ const CalendarApp = () => {
       if (res.status === 401) {
         console.warn('[Google] Token scaduto durante sync, tento refresh...');
         try {
-          const user = await GoogleAuth.signIn();
+          // Prima prova refresh silenzioso
+          let user = await GoogleAuth.refresh();
+          
+          // Se refresh silenzioso fallisce, prova signIn
+          if (!user || !user.authentication || !user.authentication.accessToken) {
+            console.log('[Google] Refresh silenzioso fallito, richiedo login...');
+            user = await GoogleAuth.signIn();
+          }
+          
           if (user && user.authentication && user.authentication.accessToken) {
             accessToken = user.authentication.accessToken;
-            userEmail = user.email;
+            userEmail = user.email || userEmail; // Mantieni email esistente se non fornita
+            
+            // Salva token aggiornato con nuova scadenza
+            const expiry = Date.now() + (55 * 60 * 1000);
             localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
+            localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
+            localStorage.setItem(`calendar4jw_google_token_expiry_${googleAccountId}`, expiry.toString());
             console.log('[Google] Token refreshed successfully');
             
             // Riprova la richiesta con il nuovo token

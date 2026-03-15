@@ -13,12 +13,15 @@ Ore di Servizio:
 - Tastiera numerica ottimizzata per mobile
 - Calcolo totale mensile corretto in formato ore:minuti
 - Retrocompatibilità con ore salvate in formato decimale
+- Fix: Ripristinato grafico totale mensile nell'ultimo giorno
 
 Autenticazione Google:
+- Fix: Token e credenziali salvati correttamente al primo login
+- Fix: Refresh silenzioso automatico senza richiesta login ripetuto
 - Refresh automatico token Google (validità 55 minuti)
 - Verifica scadenza token prima di ogni chiamata API
 - Tentativo refresh silenzioso con GoogleAuth.refresh()
-- Riduzione drastica richieste login ripetute
+- Fallback a login completo solo se refresh fallisce
 
 Widget Android:
 - Tema dinamico (chiaro/scuro) sincronizzato con app
