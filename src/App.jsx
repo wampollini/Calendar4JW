@@ -161,7 +161,7 @@ const CalendarApp = () => {
   });
 
   const [accounts, setAccounts] = useState([
-    { id: 1, name: 'Google', color: '#4285f4', active: true }
+    { id: 1, name: 'Locale', color: '#64748b', active: true }
   ]);
 
   const eventTypeTemplates = {
@@ -261,6 +261,7 @@ const CalendarApp = () => {
       
       let accessToken = null;
       let userEmail = null;
+      let googleAccountId = null;
       
       if (existingGoogleAccount) {
         // Prova a usare il token esistente
@@ -308,27 +309,21 @@ const CalendarApp = () => {
         
         accessToken = user.authentication.accessToken;
         userEmail = user.email;
-        
-        // Determina ID account (prima di usarlo per salvare)
-        const tempAccountId = existingGoogleAccount?.id || 1;
-        
-        // Salva token, email e scadenza (55 minuti)
-        const expiry = Date.now() + (55 * 60 * 1000);
-        localStorage.setItem(`calendar4jw_google_token_${tempAccountId}`, accessToken);
-        localStorage.setItem(`calendar4jw_google_user_${tempAccountId}`, userEmail);
-        localStorage.setItem(`calendar4jw_google_token_expiry_${tempAccountId}`, expiry.toString());
-        console.log('[Google] Signed in as:', userEmail, '- token saved with ID', tempAccountId);
+        console.log('[Google] Signed in as:', userEmail);
       }
       
-      // Trova o crea account Google
+      // Calcola ID account Google (ID 1 è riservato per "Locale", Google parte da 2)
       const existingAccount = allAccounts.find(a => a.email === userEmail && a.name.startsWith('Google'));
+      googleAccountId = existingAccount?.id || Math.max(1, ...allAccounts.map(a => a.id)) + 1;
       
-      // Il primo account Google ha sempre ID 1
-      const googleAccountId = existingAccount ? existingAccount.id : (
-        allAccounts.some(a => a.id === 1) 
-          ? Math.max(1, ...allAccounts.filter(a => a.name.startsWith('Google')).map(a => a.id), 0) + 1
-          : 1
-      );
+      // Salva token, email e scadenza se è un nuovo login
+      if (!existingGoogleAccount) {
+        const expiry = Date.now() + (55 * 60 * 1000);
+        localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
+        localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
+        localStorage.setItem(`calendar4jw_google_token_expiry_${googleAccountId}`, expiry.toString());
+        console.log('[Google] Token saved with ID', googleAccountId);
+      }
       
       // Fetch eventi da Google Calendar (ultimi 6 mesi e prossimi 12 mesi)
       const timeMin = new Date();
