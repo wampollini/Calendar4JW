@@ -183,6 +183,23 @@ const CalendarApp = () => {
     return `${y}-${m}-${d}`;
   };
 
+  // Converti ore:minuti in numero decimale
+  const hoursToDecimal = (hoursStr) => {
+    if (!hoursStr || hoursStr === '0:00') return 0;
+    const parts = hoursStr.split(':');
+    const hours = parseInt(parts[0]) || 0;
+    const minutes = parseInt(parts[1]) || 0;
+    return hours + (minutes / 60);
+  };
+
+  // Converti numero decimale in ore:minuti
+  const decimalToHours = (decimal) => {
+    if (!decimal || decimal === 0) return '0:00';
+    const hours = Math.floor(decimal);
+    const minutes = Math.round((decimal - hours) * 60);
+    return `${hours}:${String(minutes).padStart(2, '0')}`;
+  };
+
   const getEventsForDate = (date) => {
     const dateStr = formatDate(date);
     const filtered = events.filter(e => {
@@ -225,12 +242,13 @@ const CalendarApp = () => {
     
     Object.keys(serviceHours).forEach(dateKey => {
       if (dateKey.startsWith(key)) {
-        totalHours += serviceHours[dateKey].hours || 0;
+        const hours = serviceHours[dateKey].hours;
+        totalHours += typeof hours === 'string' ? hoursToDecimal(hours) : (hours || 0);
         totalVisits += serviceHours[dateKey].visits || 0;
       }
     });
     
-    return { hours: totalHours, visits: totalVisits };
+    return { hours: decimalToHours(totalHours), visits: totalVisits };
   };
 
   const syncGoogle = async () => {
@@ -647,8 +665,8 @@ const CalendarApp = () => {
       const isToday = new Date().toDateString() === date.toDateString();
       const isLastDay = d === daysInMonth;
       const monthTotal = isLastDay ? getMonthServiceTotal() : null;
-      const dayService = serviceHours[dateKey] || { hours: 0, visits: 0 };
-      const hasServiceHours = dayService.hours > 0 || dayService.visits > 0;
+      const dayService = serviceHours[dateKey] || { hours: '0:00', visits: 0 };
+      const hasServiceHours = (typeof dayService.hours === 'string' ? hoursToDecimal(dayService.hours) : dayService.hours) > 0 || dayService.visits > 0;
       
       days.push(
         <div key={d} onClick={() => { setSelectedDate(date); setShowDayView(true); }}
@@ -660,7 +678,7 @@ const CalendarApp = () => {
           <div className="flex items-center justify-between">
             <div className={`text-sm font-bold ${isToday ? 'text-blue-500' : settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{d}</div>
             {hasServiceHours && (
-              <div className="w-2 h-2 bg-green-500 rounded-full" title={`${dayService.hours}h, ${dayService.visits} ${tr.visits}`}></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full" title={`${typeof dayService.hours === 'string' ? dayService.hours : decimalToHours(dayService.hours || 0)}, ${dayService.visits} ${tr.visits}`}></div>
             )}
           </div>
           {dayEvents.slice(0, 3).map(e => (
@@ -1183,8 +1201,23 @@ const CalendarApp = () => {
   const saveServiceHours = () => {
     if (!selectedServiceDate) return;
     const dateKey = formatDate(selectedServiceDate);
-    const hours = parseFloat(document.getElementById('service-hours').value) || 0;
+    const hoursInput = document.getElementById('service-hours').value || '0:00';
     const visits = parseInt(document.getElementById('service-visits').value) || 0;
+    
+    // Accetta : . , ; come separatori
+    let hours = hoursInput;
+    if (hoursInput.match(/[.:,;]/)) {
+      // Sostituisci qualsiasi separatore con :
+      const normalized = hoursInput.replace(/[.,;]/g, ':');
+      const parts = normalized.split(':');
+      const h = parseInt(parts[0]) || 0;
+      const m = parseInt(parts[1]) || 0;
+      hours = `${h}:${String(m).padStart(2, '0')}`;
+    } else {
+      // Se è solo un numero, trattalo come ore intere
+      const h = parseInt(hoursInput) || 0;
+      hours = `${h}:00`;
+    }
     
     setServiceHours({
       ...serviceHours,
@@ -1556,7 +1589,7 @@ const CalendarApp = () => {
   if (showDayView && selectedDate) {
     const dayEvents = getEventsForDate(selectedDate);
     const dateKey = formatDate(selectedDate);
-    const dayService = serviceHours[dateKey] || { hours: 0, visits: 0 };
+    const dayService = serviceHours[dateKey] || { hours: '0:00', visits: 0 };
     
     return (
       <div className={`min-h-screen ${bgClass} ${textClass}`}>
@@ -1579,7 +1612,7 @@ const CalendarApp = () => {
           </div>
         </div>
         
-        {(dayService.hours > 0 || dayService.visits > 0) && (
+        {((typeof dayService.hours === 'string' ? hoursToDecimal(dayService.hours) : dayService.hours) > 0 || dayService.visits > 0) && (
           <div className="p-4 bg-gradient-to-r from-green-600 to-green-500 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1588,7 +1621,7 @@ const CalendarApp = () => {
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex gap-4">
-                  <div><span className="font-bold text-lg">{dayService.hours}</span> {tr.hours}</div>
+                  <div><span className="font-bold text-lg">{typeof dayService.hours === 'string' ? dayService.hours : decimalToHours(dayService.hours || 0)}</span> {tr.hours}</div>
                   <div><span className="font-bold text-lg">{dayService.visits}</span> {tr.visits}</div>
                 </div>
                 <div className="flex gap-1">
@@ -1653,7 +1686,10 @@ const CalendarApp = () => {
           const monthKey = `${selectedServiceDate.getFullYear()}-${String(selectedServiceDate.getMonth() + 1).padStart(2, '0')}`;
           const monthHours = Object.keys(serviceHours)
             .filter(k => k.startsWith(monthKey))
-            .reduce((sum, k) => sum + (serviceHours[k].hours || 0), 0);
+            .reduce((sum, k) => {
+              const hours = serviceHours[k].hours;
+              return sum + (typeof hours === 'string' ? hoursToDecimal(hours) : (hours || 0));
+            }, 0);
           const monthVisits = Object.keys(serviceHours)
             .filter(k => k.startsWith(monthKey))
             .reduce((sum, k) => sum + (serviceHours[k].visits || 0), 0);
@@ -1674,7 +1710,7 @@ const CalendarApp = () => {
                     <div className="flex gap-4">
                       <div className="flex items-center gap-2">
                         <span className="text-xs">{tr.hours}:</span>
-                        <span className="text-lg font-bold">{monthHours}</span>
+                        <span className="text-lg font-bold">{decimalToHours(monthHours)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs">{tr.visits}:</span>
@@ -1685,15 +1721,18 @@ const CalendarApp = () => {
                 </div>
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">⏰ {tr.hours}</label>
+                  <label className="block text-sm font-medium mb-2">⏰ {tr.hours} (es: 2:30 o 2.30)</label>
                   <input
                     id="service-hours"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    defaultValue={serviceHours[formatDate(selectedServiceDate)]?.hours || 0}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0:00"
+                    defaultValue={serviceHours[formatDate(selectedServiceDate)]?.hours || '0:00'}
                     className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
                   />
+                  <p className={`text-xs mt-1 ${settings.theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Usa : . o , come separatore
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">🚪 {tr.visits}</label>
@@ -2660,7 +2699,10 @@ const CalendarApp = () => {
         const monthKey = `${selectedServiceDate.getFullYear()}-${String(selectedServiceDate.getMonth() + 1).padStart(2, '0')}`;
         const monthHours = Object.keys(serviceHours)
           .filter(k => k.startsWith(monthKey))
-          .reduce((sum, k) => sum + (serviceHours[k].hours || 0), 0);
+          .reduce((sum, k) => {
+            const hours = serviceHours[k].hours;
+            return sum + (typeof hours === 'string' ? hoursToDecimal(hours) : (hours || 0));
+          }, 0);
         const monthVisits = Object.keys(serviceHours)
           .filter(k => k.startsWith(monthKey))
           .reduce((sum, k) => sum + (serviceHours[k].visits || 0), 0);
@@ -2684,7 +2726,7 @@ const CalendarApp = () => {
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
                       <span className="text-xs">{tr.hours}:</span>
-                      <span className="text-lg font-bold">{monthHours}</span>
+                      <span className="text-lg font-bold">{decimalToHours(monthHours)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs">{tr.visits}:</span>

@@ -6,6 +6,14 @@ UI/UX:
 - Icone scure su status bar per migliore visibilità
 - Gestione corretta safe-area per dispositivi con notch
 
+Ore di Servizio:
+- Nuovo formato ore:minuti (hh:mm) invece di decimale
+- Input flessibile: accetta : . , ; come separatori
+- Esempio: 2:30, 2.30, 2,30 = 2 ore e 30 minuti
+- Tastiera numerica ottimizzata per mobile
+- Calcolo totale mensile corretto in formato ore:minuti
+- Retrocompatibilità con ore salvate in formato decimale
+
 Autenticazione Google:
 - Refresh automatico token Google (validità 55 minuti)
 - Verifica scadenza token prima di ogni chiamata API
