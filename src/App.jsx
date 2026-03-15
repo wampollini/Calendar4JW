@@ -504,14 +504,20 @@ const CalendarApp = () => {
         const validAccounts = loadedAccounts.filter(acc => 
           !acc.name.startsWith('Google') || acc.email
         );
+        // Assicura che l'account Locale (id: 1) sia sempre presente
+        const hasLocale = validAccounts.some(a => a.id === 1);
+        if (!hasLocale) {
+          validAccounts.unshift({ id: 1, name: 'Locale', color: '#64748b', active: true });
+        }
         setAccounts(validAccounts);
       } catch (e) {
         console.error('[App] Error loading accounts:', e);
-        setAccounts([]);
+        // In caso di errore, mantieni almeno l'account Locale
+        setAccounts([{ id: 1, name: 'Locale', color: '#64748b', active: true }]);
       }
-    } else {
-      setAccounts([]);
     }
+    // Se non ci sono accounts salvati, mantieni l'account Locale dallo stato iniziale
+    // (non fare setAccounts([]) che cancellerebbe l'account Locale)
     
     const savedEvents = localStorage.getItem('calendar4jw_events');
     if (savedEvents) {

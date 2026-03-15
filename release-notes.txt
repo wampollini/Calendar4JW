@@ -1,6 +1,11 @@
-Versione 1.1 (Build 4) - 15 Marzo 2026
+Versione 1.1 (Build 5) - 15 Marzo 2026
 
-Account e Salvataggio:
+Account Locale:
+- Fix CRITICO: Account Locale sempre disponibile anche alla prima installazione
+- L'account Locale non viene più cancellato al caricamento dell'app
+- Garantita la possibilità di salvare eventi localmente senza account esterni
+
+Build 4 (15 Marzo 2026):
 - Fix: Rimosso avviso errore cloud quando si salva su account Locale
 - L'avviso di sincronizzazione cloud appare solo se l'utente ha scelto un account cloud (Google/CalDAV) e la sincronizzazione fallisce
 - Comportamento locale è ora silenzioso come previsto
