@@ -1,6 +1,11 @@
-Versione 1.1 (Build 5) - 15 Marzo 2026
+Versione 1.1 (Build 6) - 15 Marzo 2026
 
-Account Locale:
+Localizzazione:
+- Traduzione account "Locale" in inglese (Local) e spagnolo (Local)
+- Il nome dell'account locale si adatta automaticamente alla lingua dell'app
+- Migliorata logica di controllo account basata su ID invece di nome
+
+Build 5 (15 Marzo 2026):
 - Fix CRITICO: Account Locale sempre disponibile anche alla prima installazione
 - L'account Locale non viene più cancellato al caricamento dell'app
 - Garantita la possibilità di salvare eventi localmente senza account esterni

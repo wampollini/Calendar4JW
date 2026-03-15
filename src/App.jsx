@@ -1099,7 +1099,7 @@ const CalendarApp = () => {
     }
     
     // Avvisa se non salvato sul cloud (solo se l'utente aveva scelto un account cloud)
-    if (!savedToCloud && selectedAccount.name !== 'Locale') {
+    if (!savedToCloud && selectedAccount.id !== 1) {
       console.log('⚠️ Evento non salvato sul cloud, ma salvo localmente');
       // Mostra avviso ma non blocca il salvataggio locale
       alert('⚠️ Evento salvato solo localmente. Errore sincronizzazione con il cloud.');
@@ -2004,7 +2004,7 @@ const CalendarApp = () => {
               </h4>
               {accounts.map(acc => (
                 <div key={acc.id} className="flex items-center justify-between mb-3 last:mb-0">
-                  <span className="text-sm font-medium">{acc.name}</span>
+                  <span className="text-sm font-medium">{acc.id === 1 ? tr.localAccount : acc.name}</span>
                   <input
                     type="color"
                     value={acc.color}
@@ -2172,7 +2172,7 @@ const CalendarApp = () => {
                 <select value={settings.defaultCalendar} onChange={(e) => setSettings({ ...settings, defaultCalendar: parseInt(e.target.value) })}
                   className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
                   {accounts.filter(a => a.active).map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                    <option key={acc.id} value={acc.id}>{acc.id === 1 ? tr.localAccount : acc.name}</option>
                   ))}
                 </select>
               </div>
@@ -2264,7 +2264,7 @@ const CalendarApp = () => {
                 <select value={newEvent.accountId} onChange={(e) => setNewEvent({ ...newEvent, accountId: parseInt(e.target.value) })}
                   className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
                   {accounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                    <option key={acc.id} value={acc.id}>{acc.id === 1 ? tr.localAccount : acc.name}</option>
                   ))}
                 </select>
               </div>

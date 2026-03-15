@@ -54,7 +54,8 @@ export const translations = {
     orManual: 'oppure inserisci manualmente',
     qrScanSuccess: 'QR scansionato! Verifica i dati e tocca Connetti.',
     qrScanError: 'Errore scansione QR. Riprova o inserisci manualmente.',
-    qrScanCancelled: 'Scansione annullata'
+    qrScanCancelled: 'Scansione annullata',
+    localAccount: 'Locale'
   },
   es: {
     title: 'Calendar4jw',
@@ -111,7 +112,8 @@ export const translations = {
     orManual: 'o introduce manualmente',
     qrScanSuccess: '¡QR escaneado! Verifica los datos y toca Conectar.',
     qrScanError: 'Error al escanear QR. Intenta de nuevo o introduce manualmente.',
-    qrScanCancelled: 'Escaneo cancelado'
+    qrScanCancelled: 'Escaneo cancelado',
+    localAccount: 'Local'
   },
   en: {
     title: 'Calendar4jw',
@@ -168,6 +170,7 @@ export const translations = {
     orManual: 'or enter manually',
     qrScanSuccess: 'QR scanned! Verify data and tap Connect.',
     qrScanError: 'QR scan error. Try again or enter manually.',
-    qrScanCancelled: 'Scan cancelled'
+    qrScanCancelled: 'Scan cancelled',
+    localAccount: 'Local'
   }
 };
