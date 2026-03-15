@@ -2696,7 +2696,13 @@ const CalendarApp = () => {
                       style={{ backgroundColor: accounts.find(a => a.id === viewingEvent.accountId)?.color }}
                     ></div>
                     <div className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                      {viewingEvent.accountId === 1 ? tr.localAccount : accounts.find(a => a.id === viewingEvent.accountId)?.name}
+                      {(() => {
+                        const account = accounts.find(a => a.id === viewingEvent.accountId);
+                        if (account) {
+                          return account.id === 1 ? (tr.localAccount || 'Locale') : account.name;
+                        }
+                        return viewingEvent.accountId === 1 ? (tr.localAccount || 'Locale') : '';
+                      })()}
                     </div>
                   </div>
                 </div>
