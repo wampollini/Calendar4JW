@@ -1,6 +1,11 @@
-Versione 1.1 (Build 8) - 15 Marzo 2026
+Versione 1.1 (Build 9) - 15 Marzo 2026
 
 UI Dark Mode:
+- Fix: Usata condizione inline per colore testo nei dettagli evento
+- Garantita visibilità corretta in modalità scura senza dipendenze da variabili
+- Tutti i campi (titolo, data, ora, luogo, account) ora perfettamente leggibili
+
+Build 8 (15 Marzo 2026):
 - Fix CRITICO: Aggiunto colore testo ai dettagli evento
 - Tutti i campi ora visibili correttamente in modalità scura
 - Risolto problema testo nero su sfondo scuro (titolo, data, ora, luogo, account)

@@ -2639,24 +2639,24 @@ const CalendarApp = () => {
             <div className="p-4 space-y-4">
               <div>
                 <div className="text-sm text-gray-400 mb-1">{tr.eventTitle}</div>
-                <div className={`text-lg font-semibold ${textClass}`}>{viewingEvent.title}</div>
+                <div className={`text-lg font-semibold ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{viewingEvent.title}</div>
               </div>
               {viewingEvent.date && (
                 <div>
                   <div className="text-sm text-gray-400 mb-1">{tr.date}</div>
-                  <div className={`font-medium ${textClass}`}>{viewingEvent.date}</div>
+                  <div className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{viewingEvent.date}</div>
                 </div>
               )}
               {(viewingEvent.startTime || viewingEvent.endTime) && (
                 <div>
                   <div className="text-sm text-gray-400 mb-1">{tr.startTime} - {tr.endTime}</div>
-                  <div className={`font-medium ${textClass}`}>{viewingEvent.startTime} - {viewingEvent.endTime}</div>
+                  <div className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>{viewingEvent.startTime} - {viewingEvent.endTime}</div>
                 </div>
               )}
               {viewingEvent.location && (
                 <div>
                   <div className="text-sm text-gray-400 mb-1">{tr.location}</div>
-                  <div className={`font-medium mb-2 ${textClass}`}>📍 {viewingEvent.location}</div>
+                  <div className={`font-medium mb-2 ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>📍 {viewingEvent.location}</div>
                   <button 
                     onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(viewingEvent.location)}`, '_blank')}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
@@ -2695,7 +2695,7 @@ const CalendarApp = () => {
                       className="w-3 h-3 rounded-full" 
                       style={{ backgroundColor: accounts.find(a => a.id === viewingEvent.accountId)?.color }}
                     ></div>
-                    <div className={`font-medium ${textClass}`}>
+                    <div className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
                       {viewingEvent.accountId === 1 ? tr.localAccount : accounts.find(a => a.id === viewingEvent.accountId)?.name}
                     </div>
                   </div>
