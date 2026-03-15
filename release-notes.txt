@@ -1,6 +1,11 @@
-Versione 1.1 (Build 6) - 15 Marzo 2026
+Versione 1.1 (Build 7) - 15 Marzo 2026
 
 Localizzazione:
+- Fix: Aggiunta traduzione account locale nei dettagli evento
+- Il nome dell'account appare ora correttamente tradotto in tutte le sezioni dell'app
+- Italiano: "Locale", Inglese: "Local", Spagnolo: "Local"
+
+Build 6 (15 Marzo 2026):
 - Traduzione account "Locale" in inglese (Local) e spagnolo (Local)
 - Il nome dell'account locale si adatta automaticamente alla lingua dell'app
 - Migliorata logica di controllo account basata su ID invece di nome

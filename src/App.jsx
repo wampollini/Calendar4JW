@@ -2695,7 +2695,9 @@ const CalendarApp = () => {
                       className="w-3 h-3 rounded-full" 
                       style={{ backgroundColor: accounts.find(a => a.id === viewingEvent.accountId)?.color }}
                     ></div>
-                    <div className="font-medium">{accounts.find(a => a.id === viewingEvent.accountId)?.name}</div>
+                    <div className="font-medium">
+                      {viewingEvent.accountId === 1 ? tr.localAccount : accounts.find(a => a.id === viewingEvent.accountId)?.name}
+                    </div>
                   </div>
                 </div>
               )}
