@@ -1,6 +1,11 @@
-Versione 1.1 (Build 7) - 15 Marzo 2026
+Versione 1.1 (Build 8) - 15 Marzo 2026
 
-Localizzazione:
+UI Dark Mode:
+- Fix CRITICO: Aggiunto colore testo ai dettagli evento
+- Tutti i campi ora visibili correttamente in modalità scura
+- Risolto problema testo nero su sfondo scuro (titolo, data, ora, luogo, account)
+
+Build 7 (15 Marzo 2026):
 - Fix: Aggiunta traduzione account locale nei dettagli evento
 - Il nome dell'account appare ora correttamente tradotto in tutte le sezioni dell'app
 - Italiano: "Locale", Inglese: "Local", Spagnolo: "Local"
