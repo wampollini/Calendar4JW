@@ -687,9 +687,12 @@ const CalendarApp = () => {
               {e.title}
             </div>
           ))}
-          {isLastDay && monthTotal && (monthTotal.hours > 0 || monthTotal.visits > 0) && (
+          {isLastDay && monthTotal && (
+            (typeof monthTotal.hours === 'string' ? hoursToDecimal(monthTotal.hours) : monthTotal.hours) > 0 || 
+            monthTotal.visits > 0
+          ) && (
             <div className="text-[10px] mt-1 p-1 bg-green-600 text-white rounded font-bold">
-              📊 {monthTotal.hours}h • {monthTotal.visits} {tr.visits}
+              📊 {monthTotal.hours} • {monthTotal.visits} {tr.visits}
             </div>
           )}
         </div>
