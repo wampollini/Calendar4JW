@@ -404,21 +404,28 @@ const CalendarApp = () => {
   };
 
   useEffect(() => {
-    const savedSettings = localStorage.getItem('calendar4jw_settings');
-    if (savedSettings) {
-      const loaded = JSON.parse(savedSettings);
-      // Se defaultCalendar è 2 o 3 (Microsoft rimosso), resetta a 1 (Google)
-      if (loaded.defaultCalendar === 2 || loaded.defaultCalendar === 3) {
-        loaded.defaultCalendar = 1;
+    const loadSettings = async () => {
+      try {
+        const { value } = await Preferences.get({ key: 'calendar4jw_settings' });
+        if (value) {
+          const loaded = JSON.parse(value);
+          // Se defaultCalendar è 2 o 3 (Microsoft rimosso), resetta a 1 (Google)
+          if (loaded.defaultCalendar === 2 || loaded.defaultCalendar === 3) {
+            loaded.defaultCalendar = 1;
+          }
+          // Assicura che language esista sempre
+          if (!loaded.language || !availableTranslations[loaded.language]) {
+            loaded.language = 'it';
+          }
+          setSettings(loaded);
+          setViewMode(loaded.defaultView || 'month');
+          console.log(`[App] Loaded settings with language: ${loaded.language}`);
+        }
+      } catch (error) {
+        console.error('[App] Error loading settings:', error);
       }
-      // Assicura che language esista sempre
-      if (!loaded.language || !availableTranslations[loaded.language]) {
-        loaded.language = 'it';
-      }
-      setSettings(loaded);
-      setViewMode(loaded.defaultView || 'month');
-      console.log(`[App] Loading settings with language: ${loaded.language}`);
-    }
+    };
+    loadSettings();
     
     const savedHours = localStorage.getItem('calendar4jw_service_hours');
     if (savedHours) setServiceHours(JSON.parse(savedHours));
@@ -533,7 +540,18 @@ const CalendarApp = () => {
   }, [events, settings.defaultNotificationTime]);
 
   useEffect(() => {
-    localStorage.setItem('calendar4jw_settings', JSON.stringify(settings));
+    const saveSettings = async () => {
+      try {
+        await Preferences.set({
+          key: 'calendar4jw_settings',
+          value: JSON.stringify(settings)
+        });
+        console.log('[App] Settings saved:', settings.language);
+      } catch (error) {
+        console.error('[App] Error saving settings:', error);
+      }
+    };
+    saveSettings();
   }, [settings]);
 
   useEffect(() => {
