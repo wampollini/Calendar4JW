@@ -27,7 +27,8 @@ Calendar4JW is a calendar management app that allows users to:
 
 The app respects user privacy by:
 - Storing all data locally on the device
-- Never uploading data to our servers
+- Google Calendar sync happens directly between the device and Google (no intermediary servers)
+- CalDAV sync uses a Cloudflare proxy for technical reasons (CORS), but the proxy does not store data
 - Using Google's API only for direct sync between user's device and their Google Calendar
 
 ## Application Privacy Policy
@@ -36,7 +37,8 @@ The app respects user privacy by:
 
 Key points:
 - All data stored locally on user's device
-- No remote servers or databases
+- Google Calendar sync: direct communication, no intermediary servers
+- CalDAV sync: uses a Cloudflare pass-through proxy (required for CORS) that does not log or store data
 - No data collection or analytics
 - No third-party data sharing
 - Full user control over data
@@ -143,7 +145,7 @@ Publishing Status: Testing (needs to be changed to "In Production")
 3. Optionally, user taps 'Add Google Account' in the app menu
 4. User authorizes the app to access their Google Calendar
 5. App syncs existing Google Calendar events to the device
-6. User can now view, create, edit, and delete events that sync with Google Calendar
+6. Usercalendar data remains on the user's device; Google Calendar data is never sent to our servers (direct API calls only)gle Calendar
 7. All data remains on the user's device; no data is sent to our servers"
 
 ### Explain how you use the requested scopes
@@ -152,7 +154,7 @@ Publishing Status: Testing (needs to be changed to "In Production")
 - Create new calendar events in Google Calendar when users create events in the app
 - Update existing calendar events when users edit them
 - Delete calendar events when users remove them from the app
-All API calls are made directly from the user's device to Google's servers. We do not store any calendar data on our servers."
+All API calls are made directly from the user's device to Google's servers. We do not store any Google Calendar data on our servers. (Note: CalDAV sync, when used, passes through a Cloudflare proxy for technical reasons, but this does not apply to Google Calendar sync.)"
 
 ### What alternatives did you consider?
 "We considered using limited scopes like `calendar.readonly`, but this would prevent users from creating or editing events through the app, which is a core feature. We also considered implementing our own cloud sync, but this would require storing user data on our servers, which goes against our privacy-first approach."
@@ -195,12 +197,13 @@ If Google asks follow-up questions during verification, refer to:
 - **Source Code**: https://github.com/wampollini/Calendar4JW
 - **OAuth Implementation**: src/App.jsx (syncGoogle function)
 - **Token Management**: See how tokens are stored in localStorage
-- **No Backend**: Explain there is no server-side component
+- **Google Calendar Sync**: Direct API calls, no server-side component
+- **CalDAV Sync**: Uses Cloudflare proxy (cloudflare-worker/caldav-proxy.js) for CORS bypass, but does not apply to Google Calendar
 
 ## Tips for Successful Verification
 
 1. **Be Transparent**: Clearly explain that you're an independent developer making a free app
-2. **Emphasize Privacy**: Highlight that no data leaves the user's device except for direct Google API calls
+2. **Emphasize Privacy**: Highlight that Google Calendar data syncs directly between device and Google (direct API calls, no intermediary servers)
 3. **Show Code**: Reference the open-source repository
 4. **Be Patient**: Verification can take several weeks
 5. **Respond Quickly**: If Google asks questions, respond within 24-48 hours
