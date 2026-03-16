@@ -1920,20 +1920,23 @@ const CalendarApp = () => {
               <h4 className="font-semibold mb-3 flex items-center gap-2">
                 <span>🎨</span> {tr.changeColor}
               </h4>
-              {accounts.map(acc => (
-                <div key={acc.id} className="flex items-center justify-between mb-3 last:mb-0">
-                  <span className="text-sm font-medium">{acc.id === 1 ? tr.localAccount : acc.name}</span>
-                  <input
-                    type="color"
-                    value={acc.color}
-                    onChange={(e) => {
-                      const updated = accounts.map(a => a.id === acc.id ? { ...a, color: e.target.value } : a);
-                      setAccounts(updated);
-                    }}
-                    className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-600"
-                  />
-                </div>
-              ))}
+              {accounts.map(acc => {
+                const displayName = acc.id === 1 ? (tr.localAccount || 'Locale') : acc.name;
+                return (
+                  <div key={acc.id} className="flex items-center justify-between mb-3 last:mb-0">
+                    <span className="text-sm font-medium">{displayName}</span>
+                    <input
+                      type="color"
+                      value={acc.color}
+                      onChange={(e) => {
+                        const updated = accounts.map(a => a.id === acc.id ? { ...a, color: e.target.value } : a);
+                        setAccounts(updated);
+                      }}
+                      className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-600"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -2089,9 +2092,10 @@ const CalendarApp = () => {
                 <label className="block text-sm font-medium mb-2">📅 {tr.defaultCalendar}</label>
                 <select value={settings.defaultCalendar} onChange={(e) => setSettings({ ...settings, defaultCalendar: parseInt(e.target.value) })}
                   className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
-                  {accounts.filter(a => a.active).map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.id === 1 ? tr.localAccount : acc.name}</option>
-                  ))}
+                  {accounts.filter(a => a.active).map(acc => {
+                    const displayName = acc.id === 1 ? (tr.localAccount || 'Locale') : acc.name;
+                    return <option key={acc.id} value={acc.id}>{displayName}</option>;
+                  })}
                 </select>
               </div>
               
@@ -2181,9 +2185,10 @@ const CalendarApp = () => {
                 <label className="block text-sm font-medium mb-2">📅 {tr.selectCalendar}</label>
                 <select value={newEvent.accountId} onChange={(e) => setNewEvent({ ...newEvent, accountId: parseInt(e.target.value) })}
                   className={`w-full px-3 py-2 ${cardBg} border ${borderClass} rounded-lg font-medium`}>
-                  {accounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.id === 1 ? tr.localAccount : acc.name}</option>
-                  ))}
+                  {accounts.map(acc => {
+                    const displayName = acc.id === 1 ? (tr.localAccount || 'Locale') : acc.name;
+                    return <option key={acc.id} value={acc.id}>{displayName}</option>;
+                  })}
                 </select>
               </div>
               
@@ -2607,9 +2612,9 @@ const CalendarApp = () => {
               )}
               {viewingEvent.accountId && (() => {
                 const account = accounts.find(a => a.id === viewingEvent.accountId);
-                const accountName = account 
-                  ? (account.id === 1 ? tr.localAccount : account.name)
-                  : (viewingEvent.accountId === 1 ? tr.localAccount : '');
+                const displayName = account 
+                  ? (account.id === 1 ? (tr.localAccount || 'Locale') : account.name)
+                  : 'Account sconosciuto';
                 
                 return (
                   <div>
@@ -2619,9 +2624,9 @@ const CalendarApp = () => {
                         className="w-3 h-3 rounded-full" 
                         style={{ backgroundColor: account?.color || '#64748b' }}
                       ></div>
-                      <div className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                        {accountName}
-                      </div>
+                      <span className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+                        {displayName}
+                      </span>
                     </div>
                   </div>
                 );

@@ -1,6 +1,20 @@
-Versione 1.1 (Build 12) - 16 Marzo 2026
+Versione 1.1 (Build 14) - 16 Marzo 2026
 
-UI Dettagli Evento:
+UI Account Names - Fix rendering Android:
+- Fix CRITICO: Precalcolo displayName prima del rendering in tutti i componenti
+- Modificati 4 punti: dropdown impostazioni, dropdown creazione evento, sezione cambio colore, dettagli evento
+- Sostituiti ternary operator inline con variabili precalcolate
+- Aggiunto fallback esplicito 'Locale' se tr.localAccount è undefined
+- Le <option> HTML native ora hanno valori precalcolati invece di espressioni JSX inline
+
+Build 13 (16 Marzo 2026 - DEBUG):
+- Rimosso completamente IIFE per nome account
+- Testo ROSSO GIGANTE (text-2xl text-red-500) per test visibilità
+- Cambiato da div a span per testare rendering
+- Aggiunto fallback "NOME MANCANTE" per debug
+- Sempre visibile senza condizionali
+
+Build 12 (16 Marzo 2026):
 - Fix CRITICO: Refactoring completo visualizzazione nome account
 - IIFE ora restituisce l'intero blocco div invece di solo la stringa
 - Account name calcolato prima del rendering per evitare problemi React
