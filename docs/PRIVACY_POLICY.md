@@ -1,7 +1,7 @@
 # Privacy Policy for Calendar4JW
 
 **Effective Date**: March 15, 2026  
-**Last Updated**: March 15, 2026
+**Last Updated**: March 16, 2026
 
 ## Introduction
 
@@ -45,8 +45,14 @@ When you connect your Google account:
 When you connect a CalDAV/Nextcloud account:
 - You provide the server URL, username, and password
 - Credentials are stored locally on your device in encrypted form
-- We communicate directly with your CalDAV server
-- No data passes through our servers
+- **CalDAV requests are proxied through a Cloudflare Worker** to bypass CORS restrictions
+- The Cloudflare proxy (`caldav-proxy.cal4jw-backend.workers.dev`) acts as a pass-through:
+  - It receives your CalDAV server URL, credentials, and event data
+  - It forwards the request to your CalDAV server
+  - It returns the response to your device
+  - **No data is logged or stored on the Cloudflare server**
+- The proxy is necessary for technical reasons (CORS and WebDAV protocol support)
+- You can review the proxy source code at: `cloudflare-worker/caldav-proxy.js` in our GitHub repository
 
 ## Data Sharing and Third Parties
 
@@ -60,7 +66,8 @@ When you connect a CalDAV/Nextcloud account:
 ### Third-Party Services:
 - **Google Calendar API**: Used only when you explicitly choose to sync with Google Calendar
 - **Firebase Console**: Used only for app distribution (not for data collection)
-- **CalDAV Servers**: Communication happens directly between your device and your CalDAV server
+- **CalDAV Servers**: Your calendar data syncs with your self-hosted CalDAV server
+- **Cloudflare Workers**: CalDAV requests pass through a Cloudflare proxy server to resolve technical limitations (CORS). The proxy does not store or log your data
 
 ## Your Data Rights
 
@@ -74,9 +81,10 @@ You have the right to:
 ## Data Security
 
 ### Security Measures:
-- OAuth 2.0 tokens are stored locally with expiration management
-- CalDAV credentials are stored locally
+- OAuth 2.0 tokens are stored locally w in encrypted form using AES-256-GCM
 - All communications with Google/CalDAV use HTTPS encryption
+- CalDAV requests pass through a Cloudflare proxy that acts as a pass-through without logging or storing data
+- No remote database or cloud storage is used for permanent data storageTTPS encryption
 - No remote database or cloud storage is used
 
 ### Token Management:
