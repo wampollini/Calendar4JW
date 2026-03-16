@@ -85,10 +85,11 @@ Calendar4JW is built with privacy as a core principle:
 - ✅ **No Ads**: Completely ad-free
 - ✅ **Open Source**: Full code transparency
 - ✅ **Optional Cloud Sync**: You control what syncs
-- ✅ **No Server**: No backend infrastructure collecting data
+- ✅ **No Data Collection**: No backend database or data collection infrastructure
 
 When you choose to sync with Google Calendar or CalDAV:
-- Data flows directly between your device and the service
+- **Google Calendar**: Data flows directly between your device and Google (no intermediary servers)
+- **CalDAV**: Uses a Cloudflare proxy for technical reasons (CORS), but the proxy does not log or store data
 - We never see or store your calendar data
 - You can disconnect at any time
 
