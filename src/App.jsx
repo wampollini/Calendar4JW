@@ -9,7 +9,18 @@ import { helpContent } from './helpContent';
 import { updateWidgetData } from './lib/widgetSync';
 import { scheduleEventNotification, cancelEventNotification, updateAllNotifications, requestNotificationPermissions } from './lib/notifications';
 
-// Fallback translations in caso di errore caricamento
+// Import diretto dei file JSON per garantire compatibilità Capacitor
+import translationsIT from '../public/locales/it.json';
+import translationsES from '../public/locales/es.json';
+import translationsEN from '../public/locales/en.json';
+
+const availableTranslations = {
+  it: translationsIT,
+  es: translationsES,
+  en: translationsEN
+};
+
+// Fallback translations in caso di errore
 const fallbackTranslations = {
   title: 'Calendar4jw', today: 'Oggi', newEvent: 'Nuovo', accounts: 'Account',
   save: 'Salva', cancel: 'Annulla', delete: 'Elimina', edit: 'Modifica',
@@ -18,7 +29,7 @@ const fallbackTranslations = {
 
 const CalendarApp = () => {
   const [language, setLanguage] = useState('it');
-  const [translations, setTranslations] = useState(fallbackTranslations);
+  const [translations, setTranslations] = useState(availableTranslations.it);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -88,20 +99,6 @@ const CalendarApp = () => {
   };
 
   const tr = translations;
-
-  // Funzione per caricare traduzioni da file JSON
-  const loadTranslations = async (lang) => {
-    try {
-      const response = await fetch(`/locales/${lang}.json`);
-      if (!response.ok) throw new Error(`Failed to load ${lang}.json`);
-      const data = await response.json();
-      setTranslations(data);
-      console.log(`[App] Loaded translations for ${lang}`);
-    } catch (error) {
-      console.error(`[App] Error loading translations for ${lang}:`, error);
-      setTranslations(fallbackTranslations);
-    }
-  };
 
   const formatDate = (date) => {
     const y = date.getFullYear();
@@ -417,14 +414,15 @@ const CalendarApp = () => {
       }
       setSettings(loaded);
       setViewMode(loaded.defaultView || 'month');
-      if (loaded.language) {
+      if (loaded.language && availableTranslations[loaded.language]) {
         setLanguage(loaded.language);
-        loadTranslations(loaded.language);
+        setTranslations(availableTranslations[loaded.language]);
+        console.log(`[App] Loaded language: ${loaded.language}`);
       } else {
-        loadTranslations('it');
+        setTranslations(availableTranslations.it);
       }
     } else {
-      loadTranslations('it');
+      setTranslations(availableTranslations.it);
     }
     
     const savedHours = localStorage.getItem('calendar4jw_service_hours');
@@ -436,9 +434,10 @@ const CalendarApp = () => {
       try {
         const loadedAccounts = JSON.parse(savedAccounts);
         // Filtra eventuali account Google generici senza email
-        const validAccounts = loadedAccounts.filter(acc => 
-          !acc.name.startsWith('Google') || acc.email
-        );
+        const validAccounts = loadedAccounts.filter(acc => {
+          if (acc.type === 'google' && !acc.email) return false;
+          return true;
+        });
         // Assicura che l'account Locale (id: 1) sia sempre presente
         const hasLocale = validAccounts.some(a => a.id === 1);
         if (!hasLocale) {
@@ -543,8 +542,11 @@ const CalendarApp = () => {
   }, [settings]);
 
   useEffect(() => {
-    loadTranslations(language);
-    setSettings(prev => ({ ...prev, language }));
+    if (availableTranslations[language]) {
+      setTranslations(availableTranslations[language]);
+      setSettings(prev => ({ ...prev, language }));
+      console.log(`[App] Changed language to: ${language}`);
+    }
   }, [language]);
 
   useEffect(() => {
