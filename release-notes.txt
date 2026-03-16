@@ -1,6 +1,11 @@
-Versione 1.1 (Build 15) - 16 Marzo 2026
+Versione 1.1 (Build 16) - 16 Marzo 2026
 
-Fix Critici - Regressioni Build 11:
+Fix Navigazione Vista Giorno:
+- CRITICO: Aggiunto supporto swipe nella vista giorno (mancavano gli handler onTouchStart/Move/End)
+- Fix: Pulsante back ora ha feedback visivo (hover) per confermare interazione
+- Gli handler touch ora sono correttamente collegati al div principale della vista giorno
+
+Build 15 (16 Marzo 2026):
 - CRITICO: Ripristinato modal ore servizio nella vista giorno (era scomparso eliminando duplicato)
 - Modal ore servizio ora definito una volta sola e condiviso tra tutte le viste
 - Fix: Bottone < per tornare indietro dalla vista giorno ora funziona correttamente

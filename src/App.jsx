@@ -1701,9 +1701,11 @@ const CalendarApp = () => {
     const dayService = serviceHours[dateKey] || { hours: '0:00', visits: 0 };
     
     return (
-      <div className={`min-h-screen ${bgClass} ${textClass}`}>
+      <div className={`min-h-screen ${bgClass} ${textClass}`} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
         <div className={`app-header ${cardBg} p-4 flex items-center justify-between border-b ${borderClass} sticky top-0 z-10`}>
-          <button onClick={() => setShowDayView(false)}><ChevronLeft className="w-6 h-6" /></button>
+          <button onClick={() => setShowDayView(false)} className="p-2 rounded-lg hover:bg-gray-700 transition">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
           <h2 className="font-bold">{selectedDate.getDate()} {tr.months[selectedDate.getMonth()]}</h2>
           <div className="flex gap-2">
             <button onClick={() => { setSelectedServiceDate(selectedDate); setShowServiceModal(true); }}
