@@ -154,7 +154,8 @@ const CalendarApp = () => {
     notifications: true,
     defaultCalendar: 1,
     defaultNotificationTime: 15,
-    weekStartsOn: 1  // 0 = domenica, 1 = lunedì
+    weekStartsOn: 1,  // 0 = domenica, 1 = lunedì
+    language: 'it'
   });
   
   const [newEvent, setNewEvent] = useState({
@@ -493,6 +494,9 @@ const CalendarApp = () => {
       }
       setSettings(loaded);
       setViewMode(loaded.defaultView || 'month');
+      if (loaded.language) {
+        setLanguage(loaded.language);
+      }
     }
     
     const savedHours = localStorage.getItem('calendar4jw_service_hours');
@@ -609,6 +613,10 @@ const CalendarApp = () => {
   useEffect(() => {
     localStorage.setItem('calendar4jw_settings', JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    setSettings(prev => ({ ...prev, language }));
+  }, [language]);
 
   useEffect(() => {
     localStorage.setItem('calendar4jw_service_hours', JSON.stringify(serviceHours));
@@ -2256,6 +2264,31 @@ const CalendarApp = () => {
                   <HelpCircle className="w-5 h-5" />
                   {tr.help}
                 </button>
+              </div>
+
+              <div className={`${settings.theme === 'light' ? 'bg-gray-100 border-gray-300' : 'bg-gray-800 border-gray-700'} rounded-lg p-4 border`}>
+                <h3 className="font-semibold mb-3 text-lg">ℹ️ {language === 'it' ? 'Informazioni' : language === 'es' ? 'Información' : 'About'}</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Nome' : language === 'es' ? 'Nombre' : 'Name'}:</span>
+                    <span className="font-semibold">Calendar4JW</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Versione' : language === 'es' ? 'Versión' : 'Version'}:</span>
+                    <span className="font-semibold">1.1.0</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Licenza' : language === 'es' ? 'Licencia' : 'License'}:</span>
+                    <span className="font-semibold">MIT</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Repository' : language === 'es' ? 'Repositorio' : 'Repository'}:</span>
+                    <a href="https://github.com/wampollini/Calendar4JW" target="_blank" rel="noopener noreferrer" 
+                      className="font-semibold text-blue-500 hover:text-blue-600 transition">
+                      GitHub
+                    </a>
+                  </div>
+                </div>
               </div>
 
             </div>
