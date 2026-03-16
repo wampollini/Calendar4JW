@@ -36,6 +36,7 @@ const CalendarApp = () => {
   const [showDayView, setShowDayView] = useState(false);
   const [viewMode, setViewMode] = useState('month');
   const [events, setEvents] = useState([]);
+  const [isFirstRender, setIsFirstRender] = useState(true);
   const [googleUserId, setGoogleUserId] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -424,6 +425,8 @@ const CalendarApp = () => {
       } catch (error) {
         console.error('[App] Error loading settings:', error);
       }
+      // Dopo il primo caricamento, permetti il salvataggio
+      setIsFirstRender(false);
     };
     loadSettings();
     
@@ -540,6 +543,12 @@ const CalendarApp = () => {
   }, [events, settings.defaultNotificationTime]);
 
   useEffect(() => {
+    // NON salvare al primo render (quando ha ancora i default)
+    if (isFirstRender) {
+      console.log('[App] Skipping save on first render');
+      return;
+    }
+    
     const saveSettings = async () => {
       try {
         await Preferences.set({
@@ -552,7 +561,7 @@ const CalendarApp = () => {
       }
     };
     saveSettings();
-  }, [settings]);
+  }, [settings, isFirstRender]);
 
   useEffect(() => {
     if (settings.language && availableTranslations[settings.language]) {
