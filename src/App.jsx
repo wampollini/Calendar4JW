@@ -28,7 +28,6 @@ const fallbackTranslations = {
 };
 
 const CalendarApp = () => {
-  const [language, setLanguage] = useState('it');
   const [translations, setTranslations] = useState(availableTranslations.it);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -415,10 +414,10 @@ const CalendarApp = () => {
       setSettings(loaded);
       setViewMode(loaded.defaultView || 'month');
       if (loaded.language && availableTranslations[loaded.language]) {
-        setLanguage(loaded.language);
         setTranslations(availableTranslations[loaded.language]);
         console.log(`[App] Loaded language: ${loaded.language}`);
       } else {
+        setSettings(prev => ({ ...prev, language: 'it' }));
         setTranslations(availableTranslations.it);
       }
     } else {
@@ -542,12 +541,11 @@ const CalendarApp = () => {
   }, [settings]);
 
   useEffect(() => {
-    if (availableTranslations[language]) {
-      setTranslations(availableTranslations[language]);
-      setSettings(prev => ({ ...prev, language }));
-      console.log(`[App] Changed language to: ${language}`);
+    if (settings.language && availableTranslations[settings.language]) {
+      setTranslations(availableTranslations[settings.language]);
+      console.log(`[App] Changed language to: ${settings.language}`);
     }
-  }, [language]);
+  }, [settings.language]);
 
   useEffect(() => {
     localStorage.setItem('calendar4jw_service_hours', JSON.stringify(serviceHours));
@@ -2041,9 +2039,9 @@ const CalendarApp = () => {
                   {['it', 'es', 'en'].map(lang => (
                     <button
                       key={lang}
-                      onClick={() => setLanguage(lang)}
+                      onClick={() => setSettings(prev => ({ ...prev, language: lang }))}
                       className={`px-4 py-3 rounded-lg font-bold text-lg transition ${
-                        language === lang 
+                        settings.language === lang 
                           ? 'bg-blue-600 text-white shadow-lg' 
                           : settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'
                       }`}>
@@ -2135,8 +2133,8 @@ const CalendarApp = () => {
                   <option value="10">10 {tr.minutes}</option>
                   <option value="15">15 {tr.minutes}</option>
                   <option value="30">30 {tr.minutes}</option>
-                  <option value="60">1 {language === 'it' ? 'ora' : language === 'es' ? 'hora' : 'hour'}</option>
-                  <option value="1440">1 {language === 'it' ? 'giorno' : language === 'es' ? 'día' : 'day'}</option>
+                  <option value="60">1 {settings.language === 'it' ? 'ora' : settings.language === 'es' ? 'hora' : 'hour'}</option>
+                  <option value="1440">1 {settings.language === 'it' ? 'giorno' : settings.language === 'es' ? 'día' : 'day'}</option>
                 </select>
               </div>
               
@@ -2198,22 +2196,22 @@ const CalendarApp = () => {
               </div>
 
               <div className={`${settings.theme === 'light' ? 'bg-gray-100 border-gray-300' : 'bg-gray-800 border-gray-700'} rounded-lg p-4 border`}>
-                <h3 className="font-semibold mb-3 text-lg">ℹ️ {language === 'it' ? 'Informazioni' : language === 'es' ? 'Información' : 'About'}</h3>
+                <h3 className="font-semibold mb-3 text-lg">ℹ️ {settings.language === 'it' ? 'Informazioni' : settings.language === 'es' ? 'Información' : 'About'}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Nome' : language === 'es' ? 'Nombre' : 'Name'}:</span>
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{settings.language === 'it' ? 'Nome' : settings.language === 'es' ? 'Nombre' : 'Name'}:</span>
                     <span className="font-semibold">Calendar4JW</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Versione' : language === 'es' ? 'Versión' : 'Version'}:</span>
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{settings.language === 'it' ? 'Versione' : settings.language === 'es' ? 'Versión' : 'Version'}:</span>
                     <span className="font-semibold">1.1.0</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Licenza' : language === 'es' ? 'Licencia' : 'License'}:</span>
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{settings.language === 'it' ? 'Licenza' : settings.language === 'es' ? 'Licencia' : 'License'}:</span>
                     <span className="font-semibold">MIT</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{language === 'it' ? 'Repository' : language === 'es' ? 'Repositorio' : 'Repository'}:</span>
+                    <span className={settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>{settings.language === 'it' ? 'Repository' : settings.language === 'es' ? 'Repositorio' : 'Repository'}:</span>
                     <a href="https://github.com/wampollini/Calendar4JW" target="_blank" rel="noopener noreferrer" 
                       className="font-semibold text-blue-500 hover:text-blue-600 transition">
                       GitHub
@@ -2336,8 +2334,8 @@ const CalendarApp = () => {
                   <option value="10">10 {tr.minutes}</option>
                   <option value="15">15 {tr.minutes}</option>
                   <option value="30">30 {tr.minutes}</option>
-                  <option value="60">1 {language === 'it' ? 'ora' : language === 'es' ? 'hora' : 'hour'}</option>
-                  <option value="1440">1 {language === 'it' ? 'giorno' : language === 'es' ? 'día' : 'day'}</option>
+                  <option value="60">1 {settings.language === 'it' ? 'ora' : settings.language === 'es' ? 'hora' : 'hour'}</option>
+                  <option value="1440">1 {settings.language === 'it' ? 'giorno' : settings.language === 'es' ? 'día' : 'day'}</option>
                   <option value="10080">1 {tr.week}</option>
                 </select>
               </div>
@@ -2357,10 +2355,10 @@ const CalendarApp = () => {
               {newEvent.recurring !== 'none' && (
                 <div>
                   <label className="block text-sm font-medium mb-2">🔢 Ogni {newEvent.recurringInterval || 1} {
-                    newEvent.recurring === 'daily' ? (language === 'it' ? 'giorni' : language === 'es' ? 'días' : 'days') :
-                    newEvent.recurring === 'weekly' ? (language === 'it' ? 'settimane' : language === 'es' ? 'semanas' : 'weeks') :
-                    newEvent.recurring === 'monthly' ? (language === 'it' ? 'mesi' : language === 'es' ? 'meses' : 'months') :
-                    newEvent.recurring === 'yearly' ? (language === 'it' ? 'anni' : language === 'es' ? 'años' : 'years') : ''
+                    newEvent.recurring === 'daily' ? (settings.language === 'it' ? 'giorni' : settings.language === 'es' ? 'días' : 'days') :
+                    newEvent.recurring === 'weekly' ? (settings.language === 'it' ? 'settimane' : settings.language === 'es' ? 'semanas' : 'weeks') :
+                    newEvent.recurring === 'monthly' ? (settings.language === 'it' ? 'mesi' : settings.language === 'es' ? 'meses' : 'months') :
+                    newEvent.recurring === 'yearly' ? (settings.language === 'it' ? 'anni' : settings.language === 'es' ? 'años' : 'years') : ''
                   }</label>
                   <input type="number" min="1" max="99" value={newEvent.recurringInterval || 1} 
                     onChange={(e) => setNewEvent({ ...newEvent, recurringInterval: parseInt(e.target.value) || 1 })}
@@ -2586,7 +2584,7 @@ const CalendarApp = () => {
               </button>
             </div>
             <div className="p-4 space-y-6">
-              {helpContent[language].sections.map((section, index) => (
+              {helpContent[settings.language].sections.map((section, index) => (
                 <div key={index} className={`p-4 ${settings.theme === 'light' ? 'bg-gray-50' : 'bg-gray-800'} rounded-lg`}>
                   <h4 className="text-lg font-bold mb-3 flex items-center gap-2">
                     <span className="text-2xl">{section.icon}</span>
