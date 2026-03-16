@@ -1,5 +1,12 @@
-Versione 1.1 (Build 11) - 16 Marzo 2026
+Versione 1.1 (Build 12) - 16 Marzo 2026
 
+UI Dettagli Evento:
+- Fix CRITICO: Refactoring completo visualizzazione nome account
+- IIFE ora restituisce l'intero blocco div invece di solo la stringa
+- Account name calcolato prima del rendering per evitare problemi React
+- Spostata logica di calcolo fuori dal JSX inline
+
+Build 11 (16 Marzo 2026):
 Architettura Modale:
 - Fix CRITICO: Rimosso modal duplicato ore servizio dalla vista giornaliera
 - Consolidata logica modale in un'unica posizione (vista principale)

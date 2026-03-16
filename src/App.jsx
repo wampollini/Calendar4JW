@@ -2605,26 +2605,27 @@ const CalendarApp = () => {
                   </div>
                 </div>
               )}
-              {viewingEvent.accountId && (
-                <div>
-                  <div className="text-sm text-gray-400 mb-1">{tr.account}</div>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: accounts.find(a => a.id === viewingEvent.accountId)?.color }}
-                    ></div>
-                    <div className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
-                      {(() => {
-                        const account = accounts.find(a => a.id === viewingEvent.accountId);
-                        if (account) {
-                          return account.id === 1 ? (tr.localAccount || 'Locale') : account.name;
-                        }
-                        return viewingEvent.accountId === 1 ? (tr.localAccount || 'Locale') : '';
-                      })()}
+              {viewingEvent.accountId && (() => {
+                const account = accounts.find(a => a.id === viewingEvent.accountId);
+                const accountName = account 
+                  ? (account.id === 1 ? tr.localAccount : account.name)
+                  : (viewingEvent.accountId === 1 ? tr.localAccount : '');
+                
+                return (
+                  <div>
+                    <div className="text-sm text-gray-400 mb-1">{tr.account}</div>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: account?.color || '#64748b' }}
+                      ></div>
+                      <div className={`font-medium ${settings.theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+                        {accountName}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
             <div className="flex gap-3 p-4 border-t ${borderClass}">
               <button 
