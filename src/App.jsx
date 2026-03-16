@@ -9,107 +9,16 @@ import { helpContent } from './helpContent';
 import { updateWidgetData } from './lib/widgetSync';
 import { scheduleEventNotification, cancelEventNotification, updateAllNotifications, requestNotificationPermissions } from './lib/notifications';
 
-const t = {
-  it: { 
-    title: 'Calendar4jw', today: 'Oggi', newEvent: 'Nuovo', accounts: 'Account', 
-    save: 'Salva', cancel: 'Annulla', delete: 'Elimina', edit: 'Modifica', 
-    noEvents: 'Nessun evento', monthView: 'Mese', weekView: 'Settimana', agendaView: 'Agenda',
-    eventTitle: 'Titolo', date: 'Data', endDate: 'Data fine', startTime: 'Inizio', endTime: 'Fine',
-    location: 'Luogo', description: 'Descrizione', confirmDelete: 'Eliminare questo evento?',
-    regularEvent: 'Normale', appointment: 'Appuntamento', circuitAssembly: 'Assemblea', regionalConvention: 'Congresso',
-    memorial: 'Commemorazione', specialTalk: 'Discorso Speciale', coVisit: 'Visita CO',
-    selectEventType: 'Tipo evento', selectCalendar: 'Calendario',
-    caldavConnect: 'CalDAV', caldavServerUrl: 'URL Server', caldavUsername: 'Username',
-    caldavPassword: 'Password', caldavAccountName: 'Nome Account',
-    settings: 'Impostazioni', language: 'Lingua', theme: 'Tema', defaultView: 'Vista predefinita',
-    defaultCalendar: 'Calendario predefinito', notificationTime: 'Tempo notifica predefinito',
-    permissions: 'Permessi', searchEvents: 'Cerca eventi', serviceHours: 'Ore servizio',
-    hours: 'Ore', visits: 'SB', addServiceHours: 'Aggiungi ore servizio',
-    monthTotal: 'Totale mese', total: 'Totale', share: 'Condividi', attachments: 'Allegati',
-    allDay: 'Tutto il giorno',
-    addAttachment: 'Aggiungi allegato', changeColor: 'Cambia colore', openInMaps: 'Apri in Mappe',
-    notifyBefore: 'Notifica prima', minutes: 'minuti', daysLabel: 'giorni', week: 'settimana',
-    viewDetails: 'Dettagli', close: 'Chiudi',
-    recurring: 'Ricorrente', noRepeat: 'Mai', daily: 'Giornaliero', weekly: 'Settimanale', monthly: 'Mensile', yearly: 'Annuale',
-    days: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'], 
-    months: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'],
-    light: 'Chiaro', dark: 'Scuro', system: 'Sistema',
-    weekStartsOn: 'Inizio settimana', monday: 'Lunedì', sunday: 'Domenica',
-    exportICS: 'Esporta ICS', importICS: 'Importa ICS', exportAllEvents: 'Esporta tutti gli eventi', importFromFile: 'Importa da file',
-    importSuccess: 'eventi importati con successo', importError: 'Errore importazione file',
-    qrScanSuccess: 'QR scansionato! Verifica i dati e tocca Connetti.',
-    qrScanError: 'Errore scansione QR. Riprova o inserisci manualmente.',
-    qrScanCancelled: 'Scansione annullata',
-    localAccount: 'Locale'
-  },
-  es: {
-    title: 'Calendar4jw', today: 'Hoy', newEvent: 'Nuevo', accounts: 'Cuentas',
-    save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar',
-    noEvents: 'Sin eventos', monthView: 'Mes', weekView: 'Semana', agendaView: 'Agenda',
-    eventTitle: 'Título', date: 'Fecha', endDate: 'Fecha fin', startTime: 'Inicio', endTime: 'Fin',
-    location: 'Ubicación', description: 'Descripción', confirmDelete: '¿Eliminar evento?',
-    regularEvent: 'Normal', appointment: 'Cita', circuitAssembly: 'Asamblea', regionalConvention: 'Congreso',
-    memorial: 'Conmemoración', specialTalk: 'Discurso', coVisit: 'Visita SC',
-    selectEventType: 'Tipo', selectCalendar: 'Calendario',
-    caldavConnect: 'CalDAV', caldavServerUrl: 'URL', caldavUsername: 'Usuario',
-    caldavPassword: 'Contraseña', caldavAccountName: 'Nombre',
-    settings: 'Ajustes', language: 'Idioma', theme: 'Tema', defaultView: 'Vista predeterminada',
-    defaultCalendar: 'Calendario predeterminado', notificationTime: 'Tiempo de notificación',
-    permissions: 'Permisos', searchEvents: 'Buscar eventos', serviceHours: 'Horas servicio',
-    hours: 'Horas', visits: 'CB', addServiceHours: 'Añadir horas', 
-    monthTotal: 'Total mes', total: 'Total', share: 'Compartir', attachments: 'Adjuntos',
-    allDay: 'Todo el día',
-    addAttachment: 'Añadir adjunto', changeColor: 'Cambiar color', openInMaps: 'Abrir en Mapas',
-    notifyBefore: 'Notificar antes', minutes: 'minutos', daysLabel: 'días', week: 'semana',
-    viewDetails: 'Detalles', close: 'Cerrar',
-    recurring: 'Recurrente', noRepeat: 'Nunca', daily: 'Diario', weekly: 'Semanal', monthly: 'Mensual', yearly: 'Anual',
-    days: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-    months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
-    light: 'Claro', dark: 'Oscuro', system: 'Sistema',
-    weekStartsOn: 'Inicio semana', monday: 'Lunes', sunday: 'Domingo',
-    exportICS: 'Exportar ICS', importICS: 'Importar ICS', exportAllEvents: 'Exportar todos los eventos', importFromFile: 'Importar desde archivo',
-    importSuccess: 'eventos importados correctamente', importError: 'Error al importar archivo',
-    qrScanSuccess: '¡QR escaneado! Verifica los datos y toca Conectar.',
-    qrScanError: 'Error al escanear QR. Intenta de nuevo o introduce manualmente.',
-    qrScanCancelled: 'Escaneo cancelado',
-    localAccount: 'Local'
-  },
-  en: {
-    title: 'Calendar4jw', today: 'Today', newEvent: 'New', accounts: 'Accounts',
-    save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit',
-    noEvents: 'No events', monthView: 'Month', weekView: 'Week', agendaView: 'Agenda',
-    eventTitle: 'Title', date: 'Date', endDate: 'End date', startTime: 'Start', endTime: 'End',
-    location: 'Location', description: 'Description', confirmDelete: 'Delete event?',
-    regularEvent: 'Regular', appointment: 'Appointment', circuitAssembly: 'Assembly', regionalConvention: 'Convention',
-    memorial: 'Memorial', specialTalk: 'Special Talk', coVisit: 'CO Visit',
-    selectEventType: 'Type', selectCalendar: 'Calendar',
-    caldavConnect: 'CalDAV', caldavServerUrl: 'Server URL', caldavUsername: 'Username',
-    caldavPassword: 'Password', caldavAccountName: 'Account Name',
-    settings: 'Settings', language: 'Language', theme: 'Theme', defaultView: 'Default view',
-    defaultCalendar: 'Default calendar', notificationTime: 'Default notification time',
-    permissions: 'Permissions', searchEvents: 'Search events', serviceHours: 'Service hours',
-    hours: 'Hours', visits: 'BS', addServiceHours: 'Add service hours',
-    monthTotal: 'Month total', total: 'Total', share: 'Share', attachments: 'Attachments',
-    allDay: 'All day',
-    addAttachment: 'Add attachment', changeColor: 'Change color', openInMaps: 'Open in Maps',
-    notifyBefore: 'Notify before', minutes: 'minutes', daysLabel: 'days', week: 'week',
-    viewDetails: 'Details', close: 'Close',
-    recurring: 'Recurring', noRepeat: 'Never', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly',
-    days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-    light: 'Light', dark: 'Dark', system: 'System',
-    weekStartsOn: 'Week starts on', monday: 'Monday', sunday: 'Sunday',
-    exportICS: 'Export ICS', importICS: 'Import ICS', exportAllEvents: 'Export all events', importFromFile: 'Import from file',
-    importSuccess: 'events imported successfully', importError: 'Error importing file',
-    qrScanSuccess: 'QR scanned! Verify data and tap Connect.',
-    qrScanError: 'QR scan error. Try again or enter manually.',
-    qrScanCancelled: 'Scan cancelled',
-    localAccount: 'Local'
-  }
+// Fallback translations in caso di errore caricamento
+const fallbackTranslations = {
+  title: 'Calendar4jw', today: 'Oggi', newEvent: 'Nuovo', accounts: 'Account',
+  save: 'Salva', cancel: 'Annulla', delete: 'Elimina', edit: 'Modifica',
+  noEvents: 'Nessun evento', localAccount: 'Locale'
 };
 
 const CalendarApp = () => {
   const [language, setLanguage] = useState('it');
+  const [translations, setTranslations] = useState(fallbackTranslations);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -178,7 +87,21 @@ const CalendarApp = () => {
     coVisit: { title: 'Visita Sorvegliante' }
   };
 
-  const tr = t[language];
+  const tr = translations;
+
+  // Funzione per caricare traduzioni da file JSON
+  const loadTranslations = async (lang) => {
+    try {
+      const response = await fetch(`/locales/${lang}.json`);
+      if (!response.ok) throw new Error(`Failed to load ${lang}.json`);
+      const data = await response.json();
+      setTranslations(data);
+      console.log(`[App] Loaded translations for ${lang}`);
+    } catch (error) {
+      console.error(`[App] Error loading translations for ${lang}:`, error);
+      setTranslations(fallbackTranslations);
+    }
+  };
 
   const formatDate = (date) => {
     const y = date.getFullYear();
@@ -496,7 +419,12 @@ const CalendarApp = () => {
       setViewMode(loaded.defaultView || 'month');
       if (loaded.language) {
         setLanguage(loaded.language);
+        loadTranslations(loaded.language);
+      } else {
+        loadTranslations('it');
       }
+    } else {
+      loadTranslations('it');
     }
     
     const savedHours = localStorage.getItem('calendar4jw_service_hours');
@@ -615,6 +543,7 @@ const CalendarApp = () => {
   }, [settings]);
 
   useEffect(() => {
+    loadTranslations(language);
     setSettings(prev => ({ ...prev, language }));
   }, [language]);
 
