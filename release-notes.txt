@@ -1,5 +1,18 @@
-Versione 1.1 (Build 10) - 15 Marzo 2026
+Versione 1.1 (Build 11) - 16 Marzo 2026
 
+Architettura Modale:
+- Fix CRITICO: Rimosso modal duplicato ore servizio dalla vista giornaliera
+- Consolidata logica modale in un'unica posizione (vista principale)
+- Risolto potenziale conflitto rendering tra modal duplicati
+- Il modal ore servizio ora funziona correttamente da tutte le viste senza duplicazione
+
+Ore Servizio:
+- Fix: Ripristinato input ore in formato hh:mm nel modal principale
+- Supporto separatori multipli (: . ,) per inserimento ore
+- Aggiunto bottone elimina nel modal principale (mancava dopo consolidamento)
+- Testo di aiuto per chiarire i separatori supportati
+
+Build 10 (15 Marzo 2026):
 UI Dettagli Evento:
 - Fix: Aggiunta logica robusta per visualizzazione nome account
 - Aggiunto fallback a "Locale" se traduzione non disponibile
