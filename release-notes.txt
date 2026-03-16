@@ -1,6 +1,21 @@
-Versione 1.1 (Build 14) - 16 Marzo 2026
+Versione 1.1 (Build 15) - 16 Marzo 2026
 
-UI Account Names - Fix rendering Android:
+Fix Critici - Regressioni Build 11:
+- CRITICO: Ripristinato modal ore servizio nella vista giorno (era scomparso eliminando duplicato)
+- Modal ore servizio ora definito una volta sola e condiviso tra tutte le viste
+- Fix: Bottone < per tornare indietro dalla vista giorno ora funziona correttamente
+- Fix: Swipe per cambiare vista ora funziona correttamente
+- Fix: Cliccando sull'icona ore servizio nella vista giorno il modal compare immediatamente
+
+Traduzioni:
+- Fix: Aggiunte traduzioni "localAccount" mancanti nelle traduzioni inline (IT: Locale, ES: Local, EN: Local)
+- Le traduzioni ora appaiono correttamente in tutti i dropdown e menu
+
+Architettura:
+- Modal ore servizio spostato prima dei return condizionali per accessibilità globale
+- z-index 100 garantisce visibilità sopra tutte le altre viste
+
+Build 14 (16 Marzo 2026):
 - Fix CRITICO: Precalcolo displayName prima del rendering in tutti i componenti
 - Modificati 4 punti: dropdown impostazioni, dropdown creazione evento, sezione cambio colore, dettagli evento
 - Sostituiti ternary operator inline con variabili precalcolate

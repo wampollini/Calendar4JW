@@ -39,7 +39,8 @@ const t = {
     importSuccess: 'eventi importati con successo', importError: 'Errore importazione file',
     qrScanSuccess: 'QR scansionato! Verifica i dati e tocca Connetti.',
     qrScanError: 'Errore scansione QR. Riprova o inserisci manualmente.',
-    qrScanCancelled: 'Scansione annullata'
+    qrScanCancelled: 'Scansione annullata',
+    localAccount: 'Locale'
   },
   es: {
     title: 'Calendar4jw', today: 'Hoy', newEvent: 'Nuevo', accounts: 'Cuentas',
@@ -70,7 +71,8 @@ const t = {
     importSuccess: 'eventos importados correctamente', importError: 'Error al importar archivo',
     qrScanSuccess: '¡QR escaneado! Verifica los datos y toca Conectar.',
     qrScanError: 'Error al escanear QR. Intenta de nuevo o introduce manualmente.',
-    qrScanCancelled: 'Escaneo cancelado'
+    qrScanCancelled: 'Escaneo cancelado',
+    localAccount: 'Local'
   },
   en: {
     title: 'Calendar4jw', today: 'Today', newEvent: 'New', accounts: 'Accounts',
@@ -101,7 +103,8 @@ const t = {
     importSuccess: 'events imported successfully', importError: 'Error importing file',
     qrScanSuccess: 'QR scanned! Verify data and tap Connect.',
     qrScanError: 'QR scan error. Try again or enter manually.',
-    qrScanCancelled: 'Scan cancelled'
+    qrScanCancelled: 'Scan cancelled',
+    localAccount: 'Local'
   }
 };
 
@@ -1609,6 +1612,89 @@ const CalendarApp = () => {
   const cardBg = settings.theme === 'light' ? 'bg-white' : 'bg-gray-800';
   const borderClass = settings.theme === 'light' ? 'border-gray-300' : 'border-gray-700';
 
+  // Modal ore servizio - accessibile da tutte le viste
+  const serviceModal = showServiceModal && selectedServiceDate && (() => {
+    const monthKey = `${selectedServiceDate.getFullYear()}-${String(selectedServiceDate.getMonth() + 1).padStart(2, '0')}`;
+    const monthHours = Object.keys(serviceHours)
+      .filter(k => k.startsWith(monthKey))
+      .reduce((sum, k) => {
+        const hours = serviceHours[k].hours;
+        return sum + (typeof hours === 'string' ? hoursToDecimal(hours) : (hours || 0));
+      }, 0);
+    const monthVisits = Object.keys(serviceHours)
+      .filter(k => k.startsWith(monthKey))
+      .reduce((sum, k) => sum + (serviceHours[k].visits || 0), 0);
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
+        <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+          <div className={`p-4 border-b ${borderClass}`}>
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <Clock className="w-6 h-6 text-green-500" />
+              {tr.addServiceHours}
+            </h3>
+            <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+              {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
+            </p>
+            <div className={`mt-3 p-3 bg-green-600/20 border border-green-600 rounded-lg`}>
+              <div className="text-sm font-semibold text-green-400 mb-1">{tr.monthTotal}</div>
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">{tr.hours}:</span>
+                  <span className="text-lg font-bold">{decimalToHours(monthHours)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">{tr.visits}:</span>
+                  <span className="text-lg font-bold">{monthVisits}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">⏰ {tr.hours} (es: 2:30 o 2.30)</label>
+              <input
+                id="service-hours"
+                type="text"
+                inputMode="decimal"
+                placeholder="0:00"
+                defaultValue={serviceHours[formatDate(selectedServiceDate)]?.hours || '0:00'}
+                className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
+              />
+              <p className={`text-xs mt-1 ${settings.theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
+                Usa : . o , come separatore
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">🚪 {tr.visits}</label>
+              <input
+                id="service-visits"
+                type="number"
+                min="0"
+                defaultValue={serviceHours[formatDate(selectedServiceDate)]?.visits || 0}
+                className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 p-4">
+            <button onClick={() => { setShowServiceModal(false); setSelectedServiceDate(null); }} 
+              className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
+              {tr.cancel}
+            </button>
+            {serviceHours[formatDate(selectedServiceDate)] && (
+              <button onClick={deleteServiceHours} className="px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition shadow flex items-center gap-2">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+            <button onClick={saveServiceHours} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow">
+              {tr.save}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  })();
+
   if (showDayView && selectedDate) {
     const dayEvents = getEventsForDate(selectedDate);
     const dateKey = formatDate(selectedDate);
@@ -1704,6 +1790,7 @@ const CalendarApp = () => {
               </div>
             ))}
         </div>
+        {serviceModal}
       </div>
     );
   }
@@ -2650,90 +2737,7 @@ const CalendarApp = () => {
         </div>
       )}
 
-      {showServiceModal && selectedServiceDate && (() => {
-        const monthKey = `${selectedServiceDate.getFullYear()}-${String(selectedServiceDate.getMonth() + 1).padStart(2, '0')}`;
-        const monthHours = Object.keys(serviceHours)
-          .filter(k => k.startsWith(monthKey))
-          .reduce((sum, k) => {
-            const hours = serviceHours[k].hours;
-            return sum + (typeof hours === 'string' ? hoursToDecimal(hours) : (hours || 0));
-          }, 0);
-        const monthVisits = Object.keys(serviceHours)
-          .filter(k => k.startsWith(monthKey))
-          .reduce((sum, k) => sum + (serviceHours[k].visits || 0), 0);
-        
-        const lastDayOfMonth = new Date(selectedServiceDate.getFullYear(), selectedServiceDate.getMonth() + 1, 0);
-        const isLastDay = selectedServiceDate.getDate() === lastDayOfMonth.getDate();
-        
-        return (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-[100]">
-            <div className={`${cardBg} rounded-t-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
-              <div className={`p-4 border-b ${borderClass}`}>
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  <Clock className="w-6 h-6 text-green-500" />
-                  {tr.addServiceHours}
-                </h3>
-                <p className={`text-sm mt-1 ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                  {selectedServiceDate.getDate()} {tr.months[selectedServiceDate.getMonth()]} {selectedServiceDate.getFullYear()}
-                </p>
-                <div className={`mt-3 p-3 bg-green-600/20 border border-green-600 rounded-lg`}>
-                  <div className="text-sm font-semibold text-green-400 mb-1">{tr.monthTotal}</div>
-                  <div className="flex gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">{tr.hours}:</span>
-                      <span className="text-lg font-bold">{decimalToHours(monthHours)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs">{tr.visits}:</span>
-                      <span className="text-lg font-bold">{monthVisits}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">⏰ {tr.hours} (es: 2:30 o 2.30)</label>
-                <input
-                  id="service-hours"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0:00"
-                  defaultValue={serviceHours[formatDate(selectedServiceDate)]?.hours || '0:00'}
-                  className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
-                />
-                <p className={`text-xs mt-1 ${settings.theme === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>
-                  Usa : . o , come separatore
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">🚪 {tr.visits}</label>
-                <input
-                  id="service-visits"
-                  type="number"
-                  min="0"
-                  defaultValue={serviceHours[formatDate(selectedServiceDate)]?.visits || 0}
-                  className={`w-full px-4 py-3 ${cardBg} border ${borderClass} rounded-lg text-lg font-semibold focus:ring-2 focus:ring-green-500 outline-none`}
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 p-4">
-              <button onClick={() => { setShowServiceModal(false); setSelectedServiceDate(null); }} 
-                className={`flex-1 px-4 py-3 ${settings.theme === 'light' ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-700 hover:bg-gray-600'} rounded-lg font-medium transition`}>
-                {tr.cancel}
-              </button>
-              {serviceHours[formatDate(selectedServiceDate)] && (
-                <button onClick={deleteServiceHours} className="px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition shadow flex items-center gap-2">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-              <button onClick={saveServiceHours} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow">
-                {tr.save}
-              </button>
-            </div>
-          </div>
-        </div>
-        );
-      })()}
+      {serviceModal}
     </div>
   );
 };
