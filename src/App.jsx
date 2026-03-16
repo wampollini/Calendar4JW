@@ -411,17 +411,13 @@ const CalendarApp = () => {
       if (loaded.defaultCalendar === 2 || loaded.defaultCalendar === 3) {
         loaded.defaultCalendar = 1;
       }
+      // Assicura che language esista sempre
+      if (!loaded.language || !availableTranslations[loaded.language]) {
+        loaded.language = 'it';
+      }
       setSettings(loaded);
       setViewMode(loaded.defaultView || 'month');
-      if (loaded.language && availableTranslations[loaded.language]) {
-        setTranslations(availableTranslations[loaded.language]);
-        console.log(`[App] Loaded language: ${loaded.language}`);
-      } else {
-        setSettings(prev => ({ ...prev, language: 'it' }));
-        setTranslations(availableTranslations.it);
-      }
-    } else {
-      setTranslations(availableTranslations.it);
+      console.log(`[App] Loading settings with language: ${loaded.language}`);
     }
     
     const savedHours = localStorage.getItem('calendar4jw_service_hours');
