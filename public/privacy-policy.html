@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Calendar4JW</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1976d2;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        h2 {
+            color: #1976d2;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        h3 {
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .meta {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+        a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .contact-info {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 30px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Torna all'app</a>
+        
+        <h1>Privacy Policy for Calendar4JW</h1>
+        
+        <div class="meta">
+            <strong>Effective Date:</strong> March 15, 2026<br>
+            <strong>Last Updated:</strong> March 16, 2026
+        </div>
+
+        <div class="section">
+            <h2>Introduction</h2>
+            <p>Calendar4JW ("we", "our", or "the app") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application.</p>
+        </div>
+
+        <div class="section">
+            <h2>Developer Information</h2>
+            <p><strong>Developer:</strong> William Ampollini<br>
+            <strong>Contact Email:</strong> wampollini@gmail.com<br>
+            <strong>Application:</strong> Calendar4JW<br>
+            <strong>Platform:</strong> Android</p>
+        </div>
+
+        <div class="section">
+            <h2>Information We Collect</h2>
+            
+            <h3>Information You Provide</h3>
+            <ul>
+                <li><strong>Calendar Events:</strong> Event titles, dates, times, locations, and descriptions that you create or sync</li>
+                <li><strong>Service Hours:</strong> Field service hours and visit counts that you manually enter</li>
+                <li><strong>Google Account:</strong> When you choose to sync with Google Calendar, we access your email address to identify your account</li>
+            </ul>
+
+            <h3>Automatically Collected Information</h3>
+            <ul>
+                <li><strong>Local Storage:</strong> All data is stored locally on your device using browser localStorage</li>
+                <li><strong>No Analytics:</strong> We do not collect usage statistics, crash reports, or any telemetry data</li>
+                <li><strong>No Tracking:</strong> We do not use cookies, tracking pixels, or any tracking mechanisms</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>How We Use Your Information</h2>
+            
+            <h3>Google Calendar Integration</h3>
+            <p>When you connect your Google account:</p>
+            <ul>
+                <li>We request read and write access to your Google Calendar (<code>https://www.googleapis.com/auth/calendar</code> scope)</li>
+                <li>We sync your calendar events between Google Calendar and the local app</li>
+                <li>We store your Google Calendar events locally on your device</li>
+                <li>We use OAuth 2.0 tokens to access your calendar data</li>
+            </ul>
+
+            <h3>Data Storage</h3>
+            <ul>
+                <li><strong>All data is stored locally</strong> on your device</li>
+                <li>We do NOT store any data on remote servers</li>
+                <li>We do NOT have access to your data</li>
+                <li>Data remains on your device until you uninstall the app or clear app data</li>
+            </ul>
+
+            <h3>CalDAV/Nextcloud Integration</h3>
+            <p>When you connect a CalDAV/Nextcloud account:</p>
+            <ul>
+                <li>You provide the server URL, username, and password</li>
+                <li>Credentials are stored locally on your device in encrypted form</li>
+                <li><strong>CalDAV requests are proxied through a Cloudflare Worker</strong> to bypass CORS restrictions</li>
+                <li>The Cloudflare proxy (<code>caldav-proxy.cal4jw-backend.workers.dev</code>) acts as a pass-through:
+                    <ul>
+                        <li>It receives your CalDAV server URL, credentials, and event data</li>
+                        <li>It forwards the request to your CalDAV server</li>
+                        <li>It returns the response to your device</li>
+                        <li><strong>No data is logged or stored on the Cloudflare server</strong></li>
+                    </ul>
+                </li>
+                <li>The proxy is necessary for technical reasons (CORS and WebDAV protocol support)</li>
+                <li>You can review the proxy source code at: <code>cloudflare-worker/caldav-proxy.js</code> in our GitHub repository</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Data Sharing and Third Parties</h2>
+            
+            <h3>We Do NOT:</h3>
+            <ul>
+                <li>Sell your data to third parties</li>
+                <li>Share your data with advertisers</li>
+                <li>Transfer your data to external servers (except direct sync with Google/CalDAV)</li>
+                <li>Use your data for marketing purposes</li>
+                <li>Access your data remotely</li>
+            </ul>
+
+            <h3>Third-Party Services:</h3>
+            <ul>
+                <li><strong>Google Calendar API:</strong> Used only when you explicitly choose to sync with Google Calendar</li>
+                <li><strong>Firebase Console:</strong> Used only for app distribution (not for data collection)</li>
+                <li><strong>CalDAV Servers:</strong> Your calendar data syncs with your self-hosted CalDAV server</li>
+                <li><strong>Cloudflare Workers:</strong> CalDAV requests pass through a Cloudflare proxy server to resolve technical limitations (CORS). The proxy does not store or log your data</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Your Data Rights</h2>
+            <p>You have the right to:</p>
+            <ul>
+                <li><strong>Access:</strong> View all your data within the app</li>
+                <li><strong>Modify:</strong> Edit or delete any calendar events or service hours</li>
+                <li><strong>Export:</strong> Export your events in ICS format</li>
+                <li><strong>Delete:</strong> Disconnect Google/CalDAV accounts at any time</li>
+                <li><strong>Complete Removal:</strong> Uninstall the app to remove all local data</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Data Security</h2>
+            
+            <h3>Security Measures:</h3>
+            <ul>
+                <li>OAuth 2.0 tokens are stored locally in encrypted form using AES-256-GCM</li>
+                <li>All communications with Google/CalDAV use HTTPS encryption</li>
+                <li>CalDAV requests pass through a Cloudflare proxy that acts as a pass-through without logging or storing data</li>
+                <li>No remote database or cloud storage is used for permanent data storage</li>
+            </ul>
+
+            <h3>Token Management:</h3>
+            <ul>
+                <li>Google OAuth tokens expire after 55 minutes and are automatically refreshed</li>
+                <li>Tokens are stored locally in browser localStorage</li>
+                <li>You can revoke access at any time through your Google Account settings</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Children's Privacy</h2>
+            <p>Calendar4JW is suitable for users of all ages. We do not knowingly collect personal information from children. Since all data is stored locally and we do not collect any information remotely, there is no risk of unauthorized data collection.</p>
+        </div>
+
+        <div class="section">
+            <h2>Changes to Privacy Policy</h2>
+            <p>We may update this Privacy Policy from time to time. We will notify users of any material changes by:</p>
+            <ul>
+                <li>Updating the "Last Updated" date</li>
+                <li>Including change notes in app release notes</li>
+                <li>Posting the updated policy in the app repository</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Data Retention</h2>
+            <ul>
+                <li><strong>Local Data:</strong> Retained on your device until you delete it or uninstall the app</li>
+                <li><strong>Google Calendar Data:</strong> Governed by Google's retention policies</li>
+                <li><strong>CalDAV Data:</strong> Governed by your CalDAV server's policies</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Your Consent</h2>
+            <p>By using Calendar4JW and connecting your Google Calendar or CalDAV account, you consent to this Privacy Policy.</p>
+        </div>
+
+        <div class="section">
+            <h2>Open Source</h2>
+            <p>Calendar4JW is open source software. You can review the source code at:<br>
+            <strong>GitHub Repository:</strong> <a href="https://github.com/wampollini/Calendar4JW" target="_blank">https://github.com/wampollini/Calendar4JW</a></p>
+        </div>
+
+        <div class="section">
+            <h2>Google API Services User Data Policy Compliance</h2>
+            <p>Calendar4JW's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+            
+            <p>Specifically:</p>
+            <ul>
+                <li>We only request the minimum scopes necessary (<code>calendar</code> scope)</li>
+                <li>We use Google user data only to provide and improve user-facing features</li>
+                <li>We do not transfer Google user data to third parties</li>
+                <li>We do not use Google user data for serving advertisements</li>
+                <li>We do not allow humans to read Google user data unless:
+                    <ul>
+                        <li>We have your explicit consent</li>
+                        <li>It's necessary for security purposes</li>
+                        <li>It's required to comply with applicable law</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div class="contact-info">
+            <h2>Contact Us</h2>
+            <p>If you have questions or concerns about this Privacy Policy or our data practices, please contact us:</p>
+            <p>
+                <strong>Email:</strong> <a href="mailto:wampollini@gmail.com">wampollini@gmail.com</a><br>
+                <strong>GitHub:</strong> <a href="https://github.com/wampollini/Calendar4JW/issues" target="_blank">https://github.com/wampollini/Calendar4JW/issues</a>
+            </p>
+        </div>
+
+        <div class="meta" style="margin-top: 40px; text-align: center; border-top: 1px solid #ddd; padding-top: 20px;">
+            <strong>Last Review Date:</strong> March 15, 2026
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="/" class="back-link">← Torna all'app</a>
+        </div>
+    </div>
+</body>
+</html>
