@@ -202,9 +202,14 @@ const CalendarApp = () => {
           userEmail = savedEmail;
         } else if (savedToken && savedEmail && !isTokenValid) {
           console.log('[Google] Token expired, attempting silent refresh...');
+          console.log('[Google] Token expiry was:', new Date(parseInt(tokenExpiry)).toISOString());
+          console.log('[Google] Current time:', new Date().toISOString());
           try {
             // Prova refresh silenzioso
+            console.log('[Google] Calling GoogleAuth.refresh()...');
             const user = await GoogleAuth.refresh();
+            console.log('[Google] Refresh result:', user);
+            
             if (user && user.authentication && user.authentication.accessToken) {
               accessToken = user.authentication.accessToken;
               userEmail = savedEmail;
@@ -212,10 +217,13 @@ const CalendarApp = () => {
               const expiry = Date.now() + (55 * 60 * 1000);
               localStorage.setItem(`calendar4jw_google_token_${existingGoogleAccount.id}`, accessToken);
               localStorage.setItem(`calendar4jw_google_token_expiry_${existingGoogleAccount.id}`, expiry.toString());
-              console.log('[Google] Token refreshed silently');
+              console.log('[Google] Token refreshed silently - new expiry:', new Date(expiry).toISOString());
+            } else {
+              console.warn('[Google] Refresh returned invalid user object');
             }
           } catch (refreshErr) {
-            console.warn('[Google] Silent refresh failed, will require full login');
+            console.error('[Google] Silent refresh failed:', refreshErr);
+            console.error('[Google] Error details:', refreshErr.message, refreshErr.stack);
           }
         }
       }
@@ -223,8 +231,20 @@ const CalendarApp = () => {
       // Se non c'è un token salvato o refresh fallito, fai il login
       if (!accessToken) {
         console.log('[Google] Starting sign in...');
+        console.log('[Google] Requesting scopes: profile, email, calendar');
+        
+        // Richiedi esplicitamente lo scope del calendar
         const user = await GoogleAuth.signIn();
         console.log('[Google] Sign in result:', user);
+        
+        // Verifica che lo scope calendar sia presente nel token
+        if (user && user.authentication && user.authentication.accessToken) {
+          console.log('[Google] Access token received, length:', user.authentication.accessToken.length);
+          // Log per debug: verifica scope (se disponibile)
+          if (user.authentication.scope) {
+            console.log('[Google] Token scopes:', user.authentication.scope);
+          }
+        }
         
         if (!user || !user.authentication || !user.authentication.accessToken) {
           console.error('[Google] No access token received');
@@ -256,6 +276,10 @@ const CalendarApp = () => {
       timeMax.setMonth(timeMax.getMonth() + 12);
       
       const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime`;
+      
+      console.log('[Google] Fetching events with token...');
+      console.log('[Google] API URL:', url);
+      console.log('[Google] Token (first 20 chars):', accessToken.substring(0, 20) + '...');
       
       let res = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` }
@@ -305,7 +329,34 @@ const CalendarApp = () => {
         }
       }
       
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const errorBody = await res.text();
+        console.error('[Google] API Error Response:', errorBody);
+        console.error('[Google] Status:', res.status, res.statusText);
+        
+        // Gestisci 403 con messaggio chiaro
+        if (res.status === 403) {
+          try {
+            const errorData = JSON.parse(errorBody);
+            const errorMsg = errorData.error?.message || errorBody;
+            console.error('[Google] 403 Details:', errorData);
+            
+            if (errorMsg.includes('Calendar API has not been used') || errorMsg.includes('API not enabled')) {
+              throw new Error('API Google Calendar non abilitata nel progetto. Vai su Google Cloud Console > APIs & Services > Library > cerca "Google Calendar API" > Abilita.');
+            } else if (errorMsg.includes('Access Not Configured') || errorMsg.includes('accessNotConfigured')) {
+              throw new Error('Accesso non configurato. Abilita Google Calendar API nella Cloud Console.');
+            } else if (errorMsg.includes('Forbidden') || errorMsg.includes('insufficient permissions')) {
+              throw new Error('Permessi insufficienti. Verifica di essere nella lista Test Users dell\'OAuth consent screen.');
+            } else {
+              throw new Error(`Accesso negato (403): ${errorMsg}`);
+            }
+          } catch (parseErr) {
+            throw new Error(`HTTP 403: ${errorBody || 'Accesso negato. Verifica test users e API abilitata.'}`);
+          }
+        }
+        
+        throw new Error(`HTTP ${res.status}: ${errorBody || res.statusText}`);
+      }
       const data = await res.json();
       
       if (data.items) {
