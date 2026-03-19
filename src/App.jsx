@@ -412,12 +412,12 @@ const CalendarApp = () => {
         // Mantieni il calendario predefinito corrente (non cambiare automaticamente)
         // L'utente può cambiarlo manualmente dalle impostazioni se vuole
         
-        alert(`✅ ${googleEvents.length} eventi sincronizzati per ${userEmail}!`);
+        alert(`✅ ${googleEvents.length} ${tr.syncSuccess} ${userEmail}!`);
       }
     } catch (err) {
       console.error('[Google] Error during sync:', err);
       console.error('[Google] Error stack:', err.stack);
-      alert('❌ Errore sync: ' + (err.message || JSON.stringify(err)));
+      alert(`❌ ${tr.syncError} ${err.message || JSON.stringify(err)}`);
     } finally {
       setSyncing(false);
     }
@@ -431,7 +431,7 @@ const CalendarApp = () => {
     const account = accounts.find(a => a.id === accountId);
     if (!account) return;
     
-    if (!window.confirm(`Disconnettere ${account.name}? Gli eventi sincronizzati verranno rimossi.`)) return;
+    if (!window.confirm(tr.confirmDisconnect.replace('{name}', account.name))) return;
     
     // Rimuovi token ed eventi per questo account specifico
     localStorage.removeItem(`calendar4jw_google_token_${accountId}`);
@@ -448,7 +448,7 @@ const CalendarApp = () => {
       localStorage.removeItem('calendar4jw_google_user');
     }
     
-    alert(`✅ ${account.name} disconnesso`);
+    alert(`✅ ${account.name} ${tr.disconnectSuccess}`);
   };
 
   const addGoogleAccount = async () => {
@@ -929,7 +929,7 @@ const CalendarApp = () => {
     
     if (!selectedAccount) {
       console.error('[handleSave] ERRORE: Account non trovato!');
-      alert('⚠️ Seleziona un calendario valido (Google o CalDAV)');
+      alert(`⚠️ ${tr.selectValidCalendar}`);
       return;
     }
     
@@ -1029,7 +1029,7 @@ const CalendarApp = () => {
               }
             } catch (refreshErr) {
               console.error('❌ Refresh token fallito:', refreshErr);
-              alert('⚠️ Sessione Google scaduta. Effettua nuovamente il login dal menu Impostazioni.');
+              alert(`⚠️ ${tr.googleSessionExpired}`);
               localStorage.removeItem(`calendar4jw_google_token_${selectedAccount.id}`);
               setAccounts(prev => prev.map(acc => 
                 acc.id === selectedAccount.id ? { ...acc, connected: false } : acc
@@ -1038,14 +1038,14 @@ const CalendarApp = () => {
           } else {
             const errorText = await res.text();
             console.error('❌ Errore HTTP Google:', { status: res.status, statusText: res.statusText, body: errorText });
-            alert(`⚠️ Errore nel salvataggio su Google Calendar: ${res.status} ${res.statusText}`);
+            alert(`⚠️ ${tr.googleSaveError} ${res.status} ${res.statusText}`);
           }
         } else {
-          alert('⚠️ Token Google non trovato. Effettua il login.');
+          alert(`⚠️ ${tr.googleTokenNotFound}`);
         }
       } catch (err) {
         console.error('Errore salvataggio Google:', err);
-        alert('⚠️ Errore nel salvataggio su Google Calendar: ' + err.message);
+        alert(`⚠️ ${tr.googleSaveError} ${err.message}`);
       }
     }
     // Salvataggio su CalDAV (tutti gli account che non sono Google)
@@ -1096,19 +1096,19 @@ const CalendarApp = () => {
                 savedToCloud = true;
               } else {
                 console.error('❌ Errore salvataggio CalDAV:', result.error);
-                alert('⚠️ Errore nel salvataggio su CalDAV: ' + result.error);
+                alert(`⚠️ ${tr.caldavSaveError} ${result.error}`);
               }
           } else {
             console.error('[handleSave] Account JSON non trovato');
-            alert('⚠️ Dati account CalDAV non trovati. Riconfigura l\'account.');
+            alert(`⚠️ ${tr.caldavAccountDataNotFound}`);
           }
         } else {
           console.error('[handleSave] Account CalDAV non trovato in Preferences');
-          alert('⚠️ Account CalDAV non trovato. Riconfigura l\'account.');
+          alert(`⚠️ ${tr.caldavAccountNotFound}`);
         }
       } catch (err) {
         console.error('Errore salvataggio CalDAV:', err);
-        alert('⚠️ Errore nel salvataggio su CalDAV: ' + err.message);
+        alert(`⚠️ ${tr.caldavSaveError} ${err.message}`);
       }
     }
     
@@ -1116,7 +1116,7 @@ const CalendarApp = () => {
     if (!savedToCloud && selectedAccount.id !== 1) {
       console.log('⚠️ Evento non salvato sul cloud, ma salvo localmente');
       // Mostra avviso ma non blocca il salvataggio locale
-      alert('⚠️ Evento salvato solo localmente. Errore sincronizzazione con il cloud.');
+      alert(`⚠️ ${tr.eventSavedLocalOnly}`);
     }
     
     if (editingEvent) {
@@ -1217,7 +1217,7 @@ const CalendarApp = () => {
       navigator.share({ title: event.title, text });
     } else {
       navigator.clipboard.writeText(text);
-      alert('📋 Evento copiato!');
+      alert(`📋 ${tr.eventCopied}`);
     }
   };
 
@@ -1506,7 +1506,7 @@ const CalendarApp = () => {
 
   const connectCaldav = async () => {
     if (!caldavForm.serverUrl || !caldavForm.username || !caldavForm.password || !caldavForm.accountName) {
-      alert('Compila tutti i campi');
+      alert(tr.fillAllFields);
       return;
     }
 
@@ -1527,7 +1527,7 @@ const CalendarApp = () => {
         alert(`❌ ${result.error}`);
       }
     } catch (err) {
-      alert('❌ Errore connessione CalDAV: ' + err.message);
+      alert(`❌ ${tr.caldavConnectionError} ${err.message}`);
     } finally {
       setCaldavConnecting(false);
     }
@@ -1601,18 +1601,18 @@ const CalendarApp = () => {
         setEvents(newEvents);
         setSyncMessage('✅ Sincronizzazione completata!');
         setTimeout(() => setSyncMessage(''), 2000);
-        alert(`✅ ${result.events.length} eventi sincronizzati da ${result.calendarsCount} calendari!`);
+        alert(`✅ ${result.events.length} ${tr.caldavSyncSuccess.replace('{count}', result.calendarsCount)}`);
       } else {
         console.error('[App] Errore sincronizzazione:', result.error);
         setSyncMessage('❌ Errore sincronizzazione');
         setTimeout(() => setSyncMessage(''), 3000);
-        alert(`❌ ${result.error || 'Errore sconosciuto durante la sincronizzazione'}`);
+        alert(`❌ ${result.error || tr.caldavSyncError}`);
       }
     } catch (err) {
       console.error('[App] Eccezione durante sincronizzazione:', err);
       setSyncMessage('❌ Errore sincronizzazione');
       setTimeout(() => setSyncMessage(''), 3000);
-      alert('❌ Errore sync: ' + (err.message || err.toString() || 'Errore sconosciuto'));
+      alert(`❌ ${tr.syncError} ${err.message || err.toString() || tr.unknownError}`);
     } finally {
       setSyncing(false);
     }
@@ -1752,7 +1752,7 @@ const CalendarApp = () => {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button onClick={() => { 
-                    if (window.confirm(tr.confirmDelete || 'Eliminare le ore di servizio?')) {
+                    if (window.confirm(tr.confirmDeleteServiceHours)) {
                       const updated = { ...serviceHours };
                       delete updated[dateKey];
                       setServiceHours(updated);
@@ -1989,7 +1989,7 @@ const CalendarApp = () => {
                           Sincronizza
                         </button>
                         <button onClick={async () => {
-                          if (window.confirm('Disconnettere questo account CalDAV?')) {
+                          if (window.confirm(tr.confirmDisconnectCaldav)) {
                             await disconnectCalDAV(acc.id);
                             const accounts = await getCalDAVAccounts();
                             setCaldavAccounts(accounts);
@@ -2244,10 +2244,10 @@ const CalendarApp = () => {
                     try {
                       const result = await updateWidgetData(events);
                       if (result && result.success) {
-                        alert('✅ Widget aggiornato con ' + events.length + ' eventi');
+                        alert(`✅ ${tr.widgetUpdated.replace('{count}', events.length)}`);
                       }
                     } catch (err) {
-                      alert('❌ Errore: ' + err.message);
+                      alert(`❌ ${tr.errorLabel} ${err.message}`);
                     }
                   }}
                   className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2">

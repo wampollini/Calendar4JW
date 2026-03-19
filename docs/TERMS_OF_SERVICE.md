@@ -170,7 +170,7 @@ These Terms, together with the Privacy Policy, constitute the entire agreement b
 
 For questions or concerns about these Terms:
 
-**Email**: wampollini@gmail.com  
+**Email**: ampowilly@gmail.com  
 **GitHub**: https://github.com/wampollini/Calendar4JW/issues
 
 ## 20. Acknowledgment
