@@ -2783,7 +2783,7 @@ const CalendarApp = () => {
           <span>Calendar4JW v1.1</span>
           <span>•</span>
           <a 
-            href="https://calendar4jw.wahost.eu/privacy-policy.html" 
+            href="https://calendar4jw-prod.web.app/privacy-policy.html" 
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-blue-600 underline"
@@ -2792,7 +2792,7 @@ const CalendarApp = () => {
           </a>
           <span>•</span>
           <a 
-            href="https://calendar4jw.wahost.eu/terms-of-service.html" 
+            href="https://calendar4jw-prod.web.app/terms-of-service.html" 
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-blue-600 underline"
