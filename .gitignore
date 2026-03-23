@@ -24,9 +24,10 @@ android/*.jks
 android/**/*.keystore
 android/**/*.jks
 
-# Google Services (backup old versions)
+# Google Services (sensitive API keys - NEVER commit!)
 *.old
 google-services.json.old
+android/app/google-services.json
 
 # Editor directories and files
 .vscode/*
