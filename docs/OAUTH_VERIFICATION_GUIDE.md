@@ -1,4 +1,4 @@
-# Google OAuth Verification Guide for Calendar4JW
+# Google OAuth Verification Guide for Calendar4JW https://youtu.be/6KNvCxQH12s
 
 This document contains all the information needed to submit Calendar4JW for Google OAuth verification.
 

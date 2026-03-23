@@ -2776,6 +2776,40 @@ const CalendarApp = () => {
       )}
 
       {serviceModal}
+
+      {/* Footer con link Privacy Policy e Terms */}
+      <div className={`fixed bottom-0 left-0 right-0 ${settings.theme === 'light' ? 'bg-gray-100 border-gray-200' : 'bg-gray-800 border-gray-700'} border-t py-2 px-4 text-center text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'} z-10`}>
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <span>Calendar4JW v1.1</span>
+          <span>•</span>
+          <a 
+            href="https://calendar4jw.wahost.eu/privacy-policy.html" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-blue-600 underline"
+          >
+            Privacy Policy
+          </a>
+          <span>•</span>
+          <a 
+            href="https://calendar4jw.wahost.eu/terms-of-service.html" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-blue-600 underline"
+          >
+            Terms of Service
+          </a>
+          <span>•</span>
+          <a 
+            href="https://github.com/wampollini/Calendar4JW" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-blue-600 underline"
+          >
+            GitHub
+          </a>
+        </div>
+      </div>
     </div>
   );
 };
