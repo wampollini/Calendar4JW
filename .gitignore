@@ -24,6 +24,10 @@ android/*.jks
 android/**/*.keystore
 android/**/*.jks
 
+# Google Services (backup old versions)
+*.old
+google-services.json.old
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
