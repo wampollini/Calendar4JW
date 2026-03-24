@@ -122,5 +122,13 @@
   "widgetUpdated": "Widget actualizado con {count} eventos",
   "errorLabel": "Error:",
   "unknownError": "Error desconocido",
-  "confirmDeleteServiceHours": "¿Eliminar las horas de servicio?"
+  "confirmDeleteServiceHours": "¿Eliminar las horas de servicio?",
+  "sync": "Sincronizar",
+  "disconnect": "Desconectar",
+  "addGoogleAccount": "Añadir Cuenta Google",
+  "remove": "Eliminar",
+  "addCaldavAccount": "+ Añadir Cuenta",
+  "connect": "Conectar",
+  "calendars": "calendarios",
+  "syncWidget": "Sincronizar Widget"
 }
