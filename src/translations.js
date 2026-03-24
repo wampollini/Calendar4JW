@@ -55,7 +55,18 @@ export const translations = {
     qrScanSuccess: 'QR scansionato! Verifica i dati e tocca Connetti.',
     qrScanError: 'Errore scansione QR. Riprova o inserisci manualmente.',
     qrScanCancelled: 'Scansione annullata',
-    localAccount: 'Locale'
+    localAccount: 'Locale',
+    sync: 'Sincronizza',
+    disconnect: 'Disconnetti',
+    addGoogleAccount: 'Aggiungi Account Google',
+    remove: 'Rimuovi',
+    addCaldavAccount: '+ Aggiungi Account',
+    connect: 'Connetti',
+    calendars: 'calendari',
+    syncWidget: 'Sincronizza Widget',
+    confirmDisconnectCaldav: 'Sei sicuro di voler disconnettere questo account CalDAV?',
+    widgetUpdated: 'Widget aggiornato con {count} eventi',
+    errorLabel: 'Errore'
   },
   es: {
     title: 'Calendar4jw',
@@ -113,7 +124,18 @@ export const translations = {
     qrScanSuccess: '¡QR escaneado! Verifica los datos y toca Conectar.',
     qrScanError: 'Error al escanear QR. Intenta de nuevo o introduce manualmente.',
     qrScanCancelled: 'Escaneo cancelado',
-    localAccount: 'Local'
+    localAccount: 'Local',
+    sync: 'Sincronizar',
+    disconnect: 'Desconectar',
+    addGoogleAccount: 'Añadir Cuenta Google',
+    remove: 'Eliminar',
+    addCaldavAccount: '+ Añadir Cuenta',
+    connect: 'Conectar',
+    calendars: 'calendarios',
+    syncWidget: 'Sincronizar Widget',
+    confirmDisconnectCaldav: '¿Estás seguro de desconectar esta cuenta CalDAV?',
+    widgetUpdated: 'Widget actualizado con {count} eventos',
+    errorLabel: 'Error'
   },
   en: {
     title: 'Calendar4jw',
@@ -171,6 +193,17 @@ export const translations = {
     qrScanSuccess: 'QR scanned! Verify data and tap Connect.',
     qrScanError: 'QR scan error. Try again or enter manually.',
     qrScanCancelled: 'Scan cancelled',
-    localAccount: 'Local'
+    localAccount: 'Local',
+    sync: 'Sync',
+    disconnect: 'Disconnect',
+    addGoogleAccount: 'Add Google Account',
+    remove: 'Remove',
+    addCaldavAccount: '+ Add Account',
+    connect: 'Connect',
+    calendars: 'calendars',
+    syncWidget: 'Sync Widget',
+    confirmDisconnectCaldav: 'Are you sure you want to disconnect this CalDAV account?',
+    widgetUpdated: 'Widget updated with {count} events',
+    errorLabel: 'Error'
   }
 };

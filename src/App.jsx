@@ -1939,7 +1939,7 @@ const CalendarApp = () => {
                         disabled={syncing}
                         className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
                         <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                        Sincronizza
+                        {tr.sync}
                       </button>
                       <button onClick={async () => {
                         await disconnectGoogle(acc.id);
@@ -1947,7 +1947,7 @@ const CalendarApp = () => {
                       }}
                         className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition flex items-center justify-center gap-1">
                         <X className="w-4 h-4" />
-                        Disconnetti
+                        {tr.disconnect}
                       </button>
                     </div>
                   </div>
@@ -1956,7 +1956,7 @@ const CalendarApp = () => {
                   disabled={syncing}
                   className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
                   <Cloud className="w-5 h-5" />
-                  Aggiungi Account Google
+                  {tr.addGoogleAccount}
                 </button>
               </div>
             </div>
@@ -1975,7 +1975,7 @@ const CalendarApp = () => {
                       <div className="mb-2">
                         <div className="font-medium text-sm">{acc.accountName}</div>
                         <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-                          {acc.calendarsCount} calendari
+                          {acc.calendarsCount} {tr.calendars}
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -1986,7 +1986,7 @@ const CalendarApp = () => {
                           disabled={syncing}
                           className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
                           <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                          Sincronizza
+                          {tr.sync}
                         </button>
                         <button onClick={async () => {
                           if (window.confirm(tr.confirmDisconnectCaldav)) {
@@ -2000,19 +2000,19 @@ const CalendarApp = () => {
                         }}
                           className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition flex items-center justify-center gap-1">
                           <CloudOff className="w-4 h-4" />
-                          Rimuovi
+                          {tr.remove}
                         </button>
                       </div>
                     </div>
                   ))}
                   <button onClick={() => { setShowCaldavModal(true); setShowSystemMenu(false); }}
                     className="w-full px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm">
-                    + Aggiungi Account
+                    {tr.addCaldavAccount}
                   </button>
                 </div>
               ) : (
                 <button onClick={() => { setShowCaldavModal(true); setShowSystemMenu(false); }}
-                  className="w-full px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">Connetti</button>
+                  className="w-full px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">{tr.connect}</button>
               )}
             </div>
 
@@ -2252,7 +2252,7 @@ const CalendarApp = () => {
                   }}
                   className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition flex items-center justify-center gap-2">
                   <RefreshCw className="w-5 h-5" />
-                  Sincronizza Widget
+                  {tr.syncWidget}
                 </button>
               </div>
 
