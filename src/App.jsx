@@ -1712,7 +1712,7 @@ const CalendarApp = () => {
     const dayService = serviceHours[dateKey] || { hours: '0:00', visits: 0 };
     
     return (
-      <div className={`min-h-screen ${bgClass} ${textClass}`} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+      <div className={`min-h-screen ${bgClass} ${textClass} pb-10`} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
         <div className={`app-header ${cardBg} p-4 flex items-center justify-between border-b ${borderClass} sticky top-0 z-10`}>
           <button onClick={() => setShowDayView(false)} className="p-2 rounded-lg hover:bg-gray-700 transition">
             <ChevronLeft className="w-6 h-6" />
@@ -1809,7 +1809,7 @@ const CalendarApp = () => {
   }
 
   return (
-    <div className={`min-h-screen ${bgClass} ${textClass} relative`}>
+    <div className={`min-h-screen ${bgClass} ${textClass} relative pb-10`}>
       {syncMessage && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[200] animate-fade-in">
           <div className={`${cardBg} px-6 py-3 rounded-lg shadow-2xl border ${borderClass} flex items-center gap-2`}>
@@ -2778,8 +2778,8 @@ const CalendarApp = () => {
       {serviceModal}
 
       {/* Footer con link Privacy Policy e Terms */}
-      <div className={`fixed bottom-0 left-0 right-0 ${settings.theme === 'light' ? 'bg-gray-100 border-gray-200' : 'bg-gray-800 border-gray-700'} border-t py-2 px-4 text-center text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'} z-10`}>
-        <div className="flex items-center justify-center gap-4 flex-wrap">
+      <div className={`fixed bottom-0 left-0 right-0 ${settings.theme === 'light' ? 'bg-gray-100 border-gray-200' : 'bg-gray-800 border-gray-700'} border-t py-1 px-2 text-center text-[10px] ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'} z-10`}>
+        <div className="flex items-center justify-center gap-2 overflow-x-auto whitespace-nowrap">
           <span>Calendar4JW v1.1</span>
           <span>•</span>
           <a 
