@@ -100,6 +100,39 @@
             margin-right: 1rem;
         }
         
+        .separator {
+            margin: 2rem 0 1.5rem;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+        
+        .website-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.2rem;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 12px;
+            border: 2px solid #667eea;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .website-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .website-btn span {
+            font-size: 1.5rem;
+            margin-right: 0.8rem;
+        }
+        
         @media (max-width: 600px) {
             .language-container {
                 padding: 2rem 1.5rem;
@@ -137,26 +170,14 @@
                 <span>🇪🇸</span> Español
             </a>
         </div>
+        
+        <div class="separator">
+            Or visit our main website
+        </div>
+        
+        <a href="https://wahost.eu" class="website-btn" target="_blank">
+            <span>🌐</span> Visit WAHost.eu
+        </a>
     </div>
-    
-    <script>
-        // Auto-detect browser language and redirect
-        const userLang = navigator.language || navigator.userLanguage;
-        const langCode = userLang.split('-')[0].toLowerCase();
-        
-        // Map language codes to landing pages
-        const langMap = {
-            'en': 'landing-en.html',
-            'it': 'landing-it.html',
-            'es': 'landing-es.html'
-        };
-        
-        // Auto-redirect after 2 seconds if language is detected
-        if (langMap[langCode]) {
-            setTimeout(() => {
-                window.location.href = langMap[langCode];
-            }, 2000);
-        }
-    </script>
 </body>
 </html>
