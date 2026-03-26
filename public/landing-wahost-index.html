@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Calendar4JW - A smart calendar app for Jehovah's Witnesses to manage congregation events, ministry schedules, and personal calendars with Google Calendar sync.">
+    <meta name="google-site-verification" content="D2KviJKO-K_a04hgKCA9fwGHgN7YIcOA89DG90dULb4" />
+    <title>Calendar4JW - Calendar App for Jehovah's Witnesses</title>
+    <link rel="icon" type="image/png" href="https://calendar4jw-prod.web.app/icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .language-container {
+            text-align: center;
+            background: rgba(255,255,255,0.95);
+            padding: 4rem 3rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            margin: 2rem;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 2rem;
+            background: white;
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+        }
+        
+        .lang-title {
+            color: #667eea;
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+        
+        .language-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .lang-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .lang-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        .lang-btn span {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+        
+        .separator {
+            margin: 2rem 0 1.5rem;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+        
+        .website-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.2rem;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 12px;
+            border: 2px solid #667eea;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .website-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .website-btn span {
+            font-size: 1.5rem;
+            margin-right: 0.8rem;
+        }
+        
+        @media (max-width: 600px) {
+            .language-container {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="language-container">
+        <div class="logo">
+            <img src="https://calendar4jw-prod.web.app/icon.png" alt="Calendar4JW Logo">
+        </div>
+        <h1>Calendar4JW</h1>
+        <p class="subtitle">Calendar App for Jehovah's Witnesses</p>
+        
+        <p class="lang-title">Choose Your Language / Scegli la Lingua / Elige tu Idioma</p>
+        
+        <div class="language-buttons">
+            <a href="https://calendar4jw-prod.web.app/landing-en.html" class="lang-btn">
+                <span>🇬🇧</span> English
+            </a>
+            <a href="https://calendar4jw-prod.web.app/landing-it.html" class="lang-btn">
+                <span>🇮🇹</span> Italiano
+            </a>
+            <a href="https://calendar4jw-prod.web.app/landing-es.html" class="lang-btn">
+                <span>🇪🇸</span> Español
+            </a>
+        </div>
+        
+        <div class="separator">
+            Or visit our main website
+        </div>
+        
+        <a href="/indx.php" class="website-btn">
+            <span>🌐</span> Visit WAHost.eu
+        </a>
+    </div>
+</body>
+</html>
