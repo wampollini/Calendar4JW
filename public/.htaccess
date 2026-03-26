@@ -1,21 +1,36 @@
-# Calendar4JW Landing Page Priority
-# This must be at the TOP of .htaccess, BEFORE WordPress rules
+# Force Calendar4JW Landing Page as Homepage
 
-# Give priority to index.html over index.php
-DirectoryIndex index.html index.php
-
-# WordPress RewriteRules (if WordPress is installed)
-# BEGIN WordPress
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteBase /
+
+# Force homepage to index.html (Calendar4JW landing)
+RewriteCond %{REQUEST_URI} ^/$
+RewriteRule ^$ index.html [L]
+
+# Allow direct access to index.html
 RewriteRule ^index\.html$ - [L]
+
+# WordPress site accessible via /wp path
+RewriteRule ^wp/?$ index.php [L,QSA]
+RewriteRule ^wp/(.*)$ index.php [L,QSA]
+
+# Allow WordPress admin and files
+RewriteCond %{REQUEST_URI} ^/wp-admin
+RewriteRule . - [L]
+
+RewriteCond %{REQUEST_URI} ^/wp-content
+RewriteRule . - [L]
+
+RewriteCond %{REQUEST_URI} ^/wp-includes
+RewriteRule . - [L]
+
+# WordPress permalink handling (only for non-homepage)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/$
 RewriteRule . /index.php [L]
 </IfModule>
-# END WordPress
 
 # Security headers
 <IfModule mod_headers.c>
