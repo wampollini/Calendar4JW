@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Calendar4JW - A smart calendar app for Jehovah's Witnesses to manage congregation events, ministry schedules, and personal calendars with Google Calendar sync.">
+    <meta name="google-site-verification" content="dlQzMkXLytZ0uF3TAbADlRvfjL6V0Nz2ApuhSrfzBls" />
+    <title>Calendar4JW - Calendar App for Jehovah's Witnesses</title>
+    <link rel="icon" type="image/png" href="/icon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+        }
+        
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 1.5rem;
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .tagline {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            margin-bottom: 2rem;
+        }
+        
+        .main-content {
+            background: white;
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 2rem;
+        }
+        
+        .section {
+            margin-bottom: 2.5rem;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .feature {
+            padding: 1.5rem;
+            background: #f7f7f7;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .feature h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+        
+        .feature p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .privacy-box {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .privacy-box h3 {
+            color: #2980b9;
+            margin-bottom: 0.8rem;
+        }
+        
+        .privacy-box ul {
+            margin-left: 1.5rem;
+            color: #555;
+        }
+        
+        .privacy-box li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .cta-section {
+            text-align: center;
+            margin: 3rem 0;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 1.2rem 3rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            opacity: 0.9;
+        }
+        
+        footer a {
+            color: white;
+            text-decoration: underline;
+            margin: 0 1rem;
+        }
+        
+        footer a:hover {
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .tagline {
+                font-size: 1.1rem;
+            }
+            
+            .main-content {
+                padding: 1.5rem;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn {
+                display: block;
+                margin: 0.5rem auto;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <img src="/icon.png" alt="Calendar4JW Logo">
+            </div>
+            <h1>Calendar4JW</h1>
+            <p class="tagline">Smart Calendar Management for Jehovah's Witnesses</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="section">
+                <h2>📅 What is Calendar4JW?</h2>
+                <p>Calendar4JW is a specialized calendar application designed for Jehovah's Witnesses to efficiently manage congregation events, ministry schedules, circuit assembly dates, and personal appointments. The app seamlessly integrates with Google Calendar to provide bidirectional synchronization, ensuring your schedule is always up to date across all your devices.</p>
+            </div>
+            
+            <div class="section">
+                <h2>✨ Key Features</h2>
+                <div class="features">
+                    <div class="feature">
+                        <h3>🔄 Google Calendar Sync</h3>
+                        <p>Automatically sync events between Calendar4JW and your Google Calendar. Changes made in either place are reflected instantly.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>📱 Multi-Platform</h3>
+                        <p>Access your calendar from any device - Android app or web browser. Your data syncs seamlessly across all platforms.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🎯 Event Types</h3>
+                        <p>Organize events by type: congregation meetings, circuit assemblies, regional conventions, memorial, CO visits, and personal appointments.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>⏰ Smart Notifications</h3>
+                        <p>Set custom reminders for important events. Never miss a meeting or ministry appointment again.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>📊 Service Hours</h3>
+                        <p>Track your ministry hours and Bible studies directly within your calendar.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🌍 Multi-Language</h3>
+                        <p>Available in English, Italian, and Spanish (more languages coming soon).</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🔐 Why Google Calendar Access?</h2>
+                <div class="privacy-box">
+                    <h3>Calendar4JW requests access to your Google Calendar to:</h3>
+                    <ul>
+                        <li><strong>Read your calendars</strong> - To display your existing events alongside congregation events</li>
+                        <li><strong>Create events</strong> - To add new meetings, assemblies, and ministry appointments</li>
+                        <li><strong>Edit events</strong> - To update event details, times, and locations</li>
+                        <li><strong>Delete events</strong> - To remove cancelled or rescheduled events</li>
+                        <li><strong>Sync bidirectionally</strong> - To keep Calendar4JW and Google Calendar always in sync</li>
+                    </ul>
+                    <p style="margin-top: 1rem;"><strong>Your privacy matters:</strong> Calendar4JW only accesses calendar data. We never access your emails, contacts, or any other Google services. All data synchronization happens securely through Google's official APIs.</p>
+                </div>
+            </div>
+            
+            <div class="cta-section">
+                <a href="/app" class="btn btn-primary">🚀 Launch Calendar4JW</a>
+                <a href="https://wahost.eu" class="btn btn-secondary">🌐 Visit Our Website</a>
+            </div>
+            
+            <div class="section" style="text-align: center; color: #666; font-size: 0.9rem;">
+                <p><strong>Open Source:</strong> Calendar4JW is open source and available on <a href="https://github.com/wampollini/Calendar4JW" style="color: #667eea;" target="_blank">GitHub</a></p>
+            </div>
+        </div>
+        
+        <footer>
+            <p>&copy; 2026 Calendar4JW. All rights reserved.</p>
+            <div style="margin-top: 1rem;">
+                <a href="/privacy-policy.html" target="_blank">Privacy Policy</a>
+                <a href="/terms-of-service.html" target="_blank">Terms of Service</a>
+                <a href="https://github.com/wampollini/Calendar4JW" target="_blank">GitHub</a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
