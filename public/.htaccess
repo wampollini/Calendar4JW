@@ -1,0 +1,17 @@
+# Give priority to index.html over index.php
+DirectoryIndex index.html index.php
+
+# Enable mod_rewrite for clean URLs
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # WordPress access via /wordpress path
+    RewriteRule ^wordpress$ index.php [L]
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
