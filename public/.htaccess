@@ -1,36 +1,7 @@
-# Force Calendar4JW Landing Page as Homepage
+# Calendar4JW Landing Page
+# WordPress is in /wp subdirectory
 
-<IfModule mod_rewrite.c>
-RewriteEngine On
-RewriteBase /
-
-# Force homepage to index.html (Calendar4JW landing)
-RewriteCond %{REQUEST_URI} ^/$
-RewriteRule ^$ index.html [L]
-
-# Allow direct access to index.html
-RewriteRule ^index\.html$ - [L]
-
-# WordPress site accessible via /wp path
-RewriteRule ^wp/?$ index.php [L,QSA]
-RewriteRule ^wp/(.*)$ index.php [L,QSA]
-
-# Allow WordPress admin and files
-RewriteCond %{REQUEST_URI} ^/wp-admin
-RewriteRule . - [L]
-
-RewriteCond %{REQUEST_URI} ^/wp-content
-RewriteRule . - [L]
-
-RewriteCond %{REQUEST_URI} ^/wp-includes
-RewriteRule . - [L]
-
-# WordPress permalink handling (only for non-homepage)
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_URI} !^/$
-RewriteRule . /index.php [L]
-</IfModule>
+DirectoryIndex index.html index.php
 
 # Security headers
 <IfModule mod_headers.c>
