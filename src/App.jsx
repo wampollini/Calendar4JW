@@ -22,6 +22,7 @@ const availableTranslations = {
 };
 
 const GOOGLE_WEB_CLIENT_ID = '278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com';
+const GOOGLE_DISCONNECT_SNAPSHOTS_KEY = 'calendar4jw_google_disconnect_snapshots';
 
 // Fallback translations in caso di errore
 const fallbackTranslations = {
@@ -188,6 +189,49 @@ const CalendarApp = () => {
     });
     
     return { hours: decimalToHours(totalHours), visits: totalVisits };
+  };
+
+  const readGoogleDisconnectSnapshots = () => {
+    try {
+      const raw = localStorage.getItem(GOOGLE_DISCONNECT_SNAPSHOTS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+      console.error('[Google] Error reading disconnect snapshots:', error);
+      return {};
+    }
+  };
+
+  const writeGoogleDisconnectSnapshots = (snapshots) => {
+    try {
+      localStorage.setItem(GOOGLE_DISCONNECT_SNAPSHOTS_KEY, JSON.stringify(snapshots));
+    } catch (error) {
+      console.error('[Google] Error writing disconnect snapshots:', error);
+    }
+  };
+
+  const saveGoogleDisconnectSnapshot = (account, accountEvents) => {
+    if (!account) return;
+    const snapshots = readGoogleDisconnectSnapshots();
+    snapshots[String(account.id)] = {
+      account,
+      accountEvents,
+      defaultCalendar: settings.defaultCalendar,
+      googleUserId,
+      savedAt: new Date().toISOString()
+    };
+    writeGoogleDisconnectSnapshots(snapshots);
+  };
+
+  const consumeGoogleDisconnectSnapshot = (accountId) => {
+    const snapshots = readGoogleDisconnectSnapshots();
+    const key = String(accountId);
+    const snapshot = snapshots[key];
+    if (snapshot) {
+      delete snapshots[key];
+      writeGoogleDisconnectSnapshots(snapshots);
+      return snapshot;
+    }
+    return null;
   };
 
   const loadGoogleIdentityScript = () => new Promise((resolve, reject) => {
@@ -360,6 +404,7 @@ const CalendarApp = () => {
   const syncGoogle = async () => {
     setSyncing(true);
     try {
+      let reconnectReason = null;
       const isWebPlatform = Capacitor.getPlatform() === 'web';
       // Controlla se c'è già un account Google connesso con token salvato
       const savedAccounts = localStorage.getItem('calendar4jw_accounts');
@@ -384,6 +429,11 @@ const CalendarApp = () => {
           accessToken = savedToken;
           userEmail = savedEmail;
         } else if (savedToken && savedEmail && !isTokenValid) {
+          reconnectReason = settings.language === 'it'
+            ? 'Sessione Google scaduta: è richiesta una riconnessione.'
+            : settings.language === 'es'
+              ? 'La sesion de Google ha expirado: se requiere reconexion.'
+              : 'Google session expired: reconnection is required.';
           console.log('[Google] Token expired, attempting silent refresh...');
           console.log('[Google] Token expiry was:', new Date(parseInt(tokenExpiry)).toISOString());
           console.log('[Google] Current time:', new Date().toISOString());
@@ -424,6 +474,13 @@ const CalendarApp = () => {
       
       // Se non c'è un token salvato o refresh fallito, fai il login
       if (!accessToken) {
+        if (!reconnectReason && existingGoogleAccount) {
+          reconnectReason = settings.language === 'it'
+            ? 'Token Google non disponibile: è richiesta una riconnessione.'
+            : settings.language === 'es'
+              ? 'Token de Google no disponible: se requiere reconexion.'
+              : 'Google token unavailable: reconnection is required.';
+        }
         console.log('[Google] Starting sign in...');
         console.log('[Google] Requesting scopes: profile, email, calendar');
         if (isWebPlatform) {
@@ -617,12 +674,48 @@ const CalendarApp = () => {
               ? { ...a, connected: true, active: true }
               : a
           ));
+
+          // Se l'account era stato disconnesso manualmente, ripristina lo stato precedente.
+          const snapshot = consumeGoogleDisconnectSnapshot(existingGoogleAccount.id);
+          if (snapshot) {
+            setAccounts(prev => prev.map(a =>
+              a.id === existingGoogleAccount.id
+                ? {
+                    ...a,
+                    color: snapshot.account?.color || a.color,
+                    active: snapshot.account?.active ?? true,
+                    connected: true
+                  }
+                : a
+            ));
+
+            if (Array.isArray(snapshot.accountEvents) && snapshot.accountEvents.length > 0) {
+              setEvents(prev => {
+                const currentIds = new Set(prev.map(e => e.id));
+                const missingFromSnapshot = snapshot.accountEvents.filter(e => !currentIds.has(e.id));
+                return [...prev, ...missingFromSnapshot];
+              });
+            }
+
+            if (snapshot.defaultCalendar === existingGoogleAccount.id) {
+              setSettings(prev => ({ ...prev, defaultCalendar: existingGoogleAccount.id }));
+            }
+          }
         }
         
         localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
         localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
         localStorage.setItem(`calendar4jw_google_token_expiry_${googleAccountId}`, (Date.now() + (55 * 60 * 1000)).toString());
         setGoogleUserId(userEmail); // Imposta lo stato per mostrare i pulsanti
+
+        if (reconnectReason) {
+          const restoredMsg = settings.language === 'it'
+            ? `${reconnectReason} Stato precedente ripristinato.`
+            : settings.language === 'es'
+              ? `${reconnectReason} Estado anterior restaurado.`
+              : `${reconnectReason} Previous state restored.`;
+          showTransientMessage(`ℹ️ ${restoredMsg}`, 4500);
+        }
 
         // Chiedi all'utente se vuole usare il nuovo account Google come calendario predefinito
         if (isNewGoogleAccount && settings.defaultCalendar !== googleAccountId) {
@@ -675,18 +768,30 @@ const CalendarApp = () => {
     if (!account) return;
     
     if (!window.confirm(tr.confirmDisconnect.replace('{name}', account.name))) return;
+
+    // Salva uno snapshot completo per poter ripristinare lo stato dopo la riconnessione.
+    const accountEvents = events.filter(e => e.accountId === accountId);
+    saveGoogleDisconnectSnapshot(account, accountEvents);
     
     // Rimuovi token ed eventi per questo account specifico
     localStorage.removeItem(`calendar4jw_google_token_${accountId}`);
     localStorage.removeItem(`calendar4jw_google_user_${accountId}`);
+    localStorage.removeItem(`calendar4jw_google_token_expiry_${accountId}`);
     setEvents(prev => prev.filter(e => e.accountId !== accountId));
     
-    // Rimuovi solo questo account
-    setAccounts(prev => prev.filter(a => a.id !== accountId));
+    // Mantieni l'account visibile ma segnalo come disconnesso,
+    // cosi l'utente puo riconnetterlo subito dal pulsante Sync.
+    setAccounts(prev => prev.map(a =>
+      a.id === accountId
+        ? { ...a, connected: false, active: false }
+        : a
+    ));
     
-    // Aggiorna googleUserId solo se non ci sono più account Google
-    const remainingGoogleAccounts = accounts.filter(a => a.name.startsWith('Google') && a.id !== accountId);
-    if (remainingGoogleAccounts.length === 0) {
+    // Aggiorna googleUserId solo se non ci sono piu account Google connessi
+    const remainingConnectedGoogleAccounts = accounts.filter(
+      a => a.name.startsWith('Google') && a.id !== accountId && a.connected
+    );
+    if (remainingConnectedGoogleAccounts.length === 0) {
       setGoogleUserId(null);
       localStorage.removeItem('calendar4jw_google_user');
     }
@@ -2213,6 +2318,15 @@ const CalendarApp = () => {
                       <div className={`text-xs ${settings.theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
                         {acc.email}
                       </div>
+                      {!acc.connected && (
+                        <div className="text-xs text-amber-500 mt-1">
+                          {settings.language === 'it'
+                            ? 'Account scollegato'
+                            : settings.language === 'es'
+                              ? 'Cuenta desconectada'
+                              : 'Account disconnected'}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button onClick={async () => { 
@@ -2222,13 +2336,20 @@ const CalendarApp = () => {
                         disabled={syncing}
                         className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-1">
                         <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                        {tr.sync}
+                        {acc.connected
+                          ? tr.sync
+                          : (settings.language === 'it'
+                              ? 'Riconnetti'
+                              : settings.language === 'es'
+                                ? 'Reconectar'
+                                : 'Reconnect')}
                       </button>
                       <button onClick={async () => {
                         await disconnectGoogle(acc.id);
                         setShowSystemMenu(false);
                       }}
-                        className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition flex items-center justify-center gap-1">
+                        disabled={!acc.connected}
+                        className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1">
                         <X className="w-4 h-4" />
                         {tr.disconnect}
                       </button>
