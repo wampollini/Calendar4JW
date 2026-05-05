@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Settings, Trash2, Edit2, Cloud, CloudOff, RefreshCw, Menu, X, Search, Clock, Share2, Paperclip, Sun, Moon, Monitor, Download, Upload, Eye, EyeOff, HelpCircle, QrCode } from 'lucide-react';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { connectCalDAV, syncCalDAVEvents, getCalDAVAccounts, disconnectCalDAV, createCalDAVEvent, deleteCalDAVEvent } from './lib/caldavSync';
 import { exportEventsToICS, downloadICS, readICSFile } from './lib/icsUtils';
@@ -19,6 +20,8 @@ const availableTranslations = {
   es: translationsES,
   en: translationsEN
 };
+
+const GOOGLE_WEB_CLIENT_ID = '278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com';
 
 // Fallback translations in caso di errore
 const fallbackTranslations = {
@@ -58,6 +61,7 @@ const CalendarApp = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const qrReaderRef = useRef(null);
+  const messageTimeoutRef = useRef(null);
   
   const [caldavForm, setCaldavForm] = useState({
     serverUrl: '', username: '', password: '', accountName: ''
@@ -99,6 +103,17 @@ const CalendarApp = () => {
   };
 
   const tr = translations;
+
+  const showTransientMessage = (message, duration = 2000) => {
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+    setSyncMessage(message);
+    messageTimeoutRef.current = setTimeout(() => {
+      setSyncMessage('');
+      messageTimeoutRef.current = null;
+    }, duration);
+  };
 
   const formatDate = (date) => {
     const y = date.getFullYear();
@@ -175,9 +190,177 @@ const CalendarApp = () => {
     return { hours: decimalToHours(totalHours), visits: totalVisits };
   };
 
+  const loadGoogleIdentityScript = () => new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('Window non disponibile'));
+      return;
+    }
+
+    if (window.google?.accounts?.oauth2) {
+      resolve();
+      return;
+    }
+
+    const existing = document.getElementById('google-identity-services');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Impossibile caricare Google Identity Services')), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-identity-services';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Impossibile caricare Google Identity Services'));
+    document.head.appendChild(script);
+  });
+
+  const signInGoogleWeb = async ({ prompt = 'select_account' } = {}) => {
+    await loadGoogleIdentityScript();
+
+    const tokenResponse = await new Promise((resolve, reject) => {
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_WEB_CLIENT_ID,
+        scope: 'openid email profile https://www.googleapis.com/auth/calendar',
+        prompt: 'consent',
+        callback: (resp) => {
+          if (resp?.error) {
+            reject(new Error(`GIS_${resp.error}`));
+            return;
+          }
+          if (!resp?.access_token) {
+            reject(new Error('GIS_no_access_token'));
+            return;
+          }
+          resolve(resp);
+        }
+      });
+
+      tokenClient.requestAccessToken({ prompt });
+    });
+
+    const accessToken = tokenResponse.access_token;
+    const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (!userInfoRes.ok) {
+      throw new Error(`GIS_userinfo_http_${userInfoRes.status}`);
+    }
+
+    const userInfo = await userInfoRes.json();
+    if (!userInfo?.email) {
+      throw new Error('GIS_no_email');
+    }
+
+    return { accessToken, userEmail: userInfo.email };
+  };
+
+  const classifyGoogleAuthError = (error) => {
+    const rawMessage = (error && (error.message || JSON.stringify(error))) || '';
+    const lower = rawMessage.toLowerCase();
+
+    const isPopupClosed =
+      lower.includes('popup_closed_by_user') ||
+      lower.includes('popup_closed') ||
+      lower.includes('12501') ||
+      lower.includes('cancelled') ||
+      lower.includes('canceled') ||
+      lower.includes('access_denied');
+
+    const isDeveloperError =
+      lower.includes('developer_error') ||
+      lower.includes('status code: 10') ||
+      lower.includes('code: 10') ||
+      lower.includes('invalid_client') ||
+      lower.includes('redirect_uri_mismatch') ||
+      lower.includes('origin_mismatch');
+
+    const isSessionExpired =
+      lower.includes('invalid_grant') ||
+      lower.includes('invalid_token') ||
+      lower.includes('token has been expired or revoked') ||
+      lower.includes('refresh token fallito') ||
+      lower.includes('sessione google scaduta') ||
+      lower.includes('unauthorized') ||
+      lower.includes('http 401');
+
+    if (isDeveloperError) {
+      return { kind: 'developer_error', rawMessage };
+    }
+    if (isPopupClosed) {
+      return { kind: 'popup_closed', rawMessage };
+    }
+    if (isSessionExpired) {
+      return { kind: 'session_expired', rawMessage };
+    }
+
+    return { kind: 'unknown', rawMessage };
+  };
+
+  const getGoogleAuthErrorMessage = (classification, { isWeb } = {}) => {
+    const lang = settings.language || 'it';
+
+    if (classification.kind === 'developer_error') {
+      if (lang === 'es') {
+        return 'Configuracion OAuth de Google no valida (DEVELOPER_ERROR). Verifica package name com.jw.calendar y huellas SHA-1/SHA-256 de la clave de firma en el cliente OAuth Android de Google Cloud/Firebase.';
+      }
+      if (lang === 'en') {
+        return 'Invalid Google OAuth Android configuration (DEVELOPER_ERROR). Verify package name com.jw.calendar and SHA-1/SHA-256 fingerprints for your signing key in the Google Cloud/Firebase Android OAuth client.';
+      }
+      return 'Configurazione Google OAuth Android non valida (DEVELOPER_ERROR). Verifica package name com.jw.calendar e SHA-1/SHA-256 della chiave con cui firmi l\'APK nel client OAuth Android in Google Cloud/Firebase.';
+    }
+
+    if (classification.kind === 'popup_closed') {
+      if (isWeb) {
+        if (lang === 'es') {
+          return `Acceso Google interrumpido en el navegador. Origen actual: ${window.location.origin}. Si no cerraste el popup manualmente, revisa bloqueador de popups, cookies de terceros y Authorized JavaScript origins del cliente OAuth Web.`;
+        }
+        if (lang === 'en') {
+          return `Google sign-in interrupted in browser. Current origin: ${window.location.origin}. If you did not close the popup manually, check popup blocking, third-party cookies, and Authorized JavaScript origins for the OAuth Web client.`;
+        }
+        return `Accesso Google interrotto nel browser. Origine corrente: ${window.location.origin}. Se non hai chiuso il popup manualmente, controlla popup bloccati, cookie di terze parti e Authorized JavaScript origins del client OAuth Web.`;
+      }
+
+      if (lang === 'es') {
+        return 'Acceso Google cancelado. Si no cerraste el popup manualmente, verifica SHA-1/SHA-256 y package name del cliente OAuth Android.';
+      }
+      if (lang === 'en') {
+        return 'Google sign-in cancelled. If you did not close the popup manually, verify SHA-1/SHA-256 and package name for the Android OAuth client.';
+      }
+      return 'Accesso Google annullato. Se non hai chiuso il popup manualmente, controlla SHA-1/SHA-256 e package name del client OAuth Android.';
+    }
+
+    if (classification.kind === 'session_expired') {
+      if (lang === 'es') {
+        return 'Sesion de Google caducada o revocada. Vuelve a iniciar sesion desde Configuracion > Cuenta Google.';
+      }
+      if (lang === 'en') {
+        return 'Google session expired or revoked. Please sign in again from Settings > Google account.';
+      }
+      return 'Sessione Google scaduta o revocata. Effettua nuovamente il login da Impostazioni > Account Google.';
+    }
+
+    return classification.rawMessage || 'Errore Google OAuth sconosciuto.';
+  };
+
+  const logGoogleAuthDiagnostics = (context, classification) => {
+    console.error('[Google][Diag]', {
+      context,
+      kind: classification.kind,
+      message: classification.rawMessage,
+      platform: Capacitor.getPlatform(),
+      timestamp: new Date().toISOString()
+    });
+  };
+
   const syncGoogle = async () => {
     setSyncing(true);
     try {
+      const isWebPlatform = Capacitor.getPlatform() === 'web';
       // Controlla se c'è già un account Google connesso con token salvato
       const savedAccounts = localStorage.getItem('calendar4jw_accounts');
       const allAccounts = savedAccounts ? JSON.parse(savedAccounts) : accounts;
@@ -205,21 +388,32 @@ const CalendarApp = () => {
           console.log('[Google] Token expiry was:', new Date(parseInt(tokenExpiry)).toISOString());
           console.log('[Google] Current time:', new Date().toISOString());
           try {
-            // Prova refresh silenzioso
-            console.log('[Google] Calling GoogleAuth.refresh()...');
-            const user = await GoogleAuth.refresh();
-            console.log('[Google] Refresh result:', user);
-            
-            if (user && user.authentication && user.authentication.accessToken) {
-              accessToken = user.authentication.accessToken;
-              userEmail = savedEmail;
-              // Salva nuovo token con scadenza (55 minuti)
+            if (isWebPlatform) {
+              const webAuth = await signInGoogleWeb({ prompt: '' });
+              accessToken = webAuth.accessToken;
+              userEmail = webAuth.userEmail || savedEmail;
               const expiry = Date.now() + (55 * 60 * 1000);
               localStorage.setItem(`calendar4jw_google_token_${existingGoogleAccount.id}`, accessToken);
+              localStorage.setItem(`calendar4jw_google_user_${existingGoogleAccount.id}`, userEmail);
               localStorage.setItem(`calendar4jw_google_token_expiry_${existingGoogleAccount.id}`, expiry.toString());
-              console.log('[Google] Token refreshed silently - new expiry:', new Date(expiry).toISOString());
+              console.log('[Google][Web] Token refreshed silently - new expiry:', new Date(expiry).toISOString());
             } else {
-              console.warn('[Google] Refresh returned invalid user object');
+              // Prova refresh silenzioso
+              console.log('[Google] Calling GoogleAuth.refresh()...');
+              const user = await GoogleAuth.refresh();
+              console.log('[Google] Refresh result:', user);
+              
+              if (user && user.authentication && user.authentication.accessToken) {
+                accessToken = user.authentication.accessToken;
+                userEmail = savedEmail;
+                // Salva nuovo token con scadenza (55 minuti)
+                const expiry = Date.now() + (55 * 60 * 1000);
+                localStorage.setItem(`calendar4jw_google_token_${existingGoogleAccount.id}`, accessToken);
+                localStorage.setItem(`calendar4jw_google_token_expiry_${existingGoogleAccount.id}`, expiry.toString());
+                console.log('[Google] Token refreshed silently - new expiry:', new Date(expiry).toISOString());
+              } else {
+                console.warn('[Google] Refresh returned invalid user object');
+              }
             }
           } catch (refreshErr) {
             console.error('[Google] Silent refresh failed:', refreshErr);
@@ -232,42 +426,48 @@ const CalendarApp = () => {
       if (!accessToken) {
         console.log('[Google] Starting sign in...');
         console.log('[Google] Requesting scopes: profile, email, calendar');
-        
-        // Richiedi esplicitamente lo scope del calendar
-        const user = await GoogleAuth.signIn();
-        console.log('[Google] Sign in result:', user);
-        
-        // Verifica che lo scope calendar sia presente nel token
-        if (user && user.authentication && user.authentication.accessToken) {
-          console.log('[Google] Access token received, length:', user.authentication.accessToken.length);
-          // Log per debug: verifica scope (se disponibile)
-          if (user.authentication.scope) {
-            console.log('[Google] Token scopes:', user.authentication.scope);
+        if (isWebPlatform) {
+          console.log('[Google][Web] Current origin:', window.location.origin);
+          console.log('[Google][Web] OAuth client ID:', GOOGLE_WEB_CLIENT_ID);
+          const webAuth = await signInGoogleWeb({ prompt: 'select_account' });
+          accessToken = webAuth.accessToken;
+          userEmail = webAuth.userEmail;
+          console.log('[Google][Web] Signed in as:', userEmail);
+        } else {
+          // Richiedi esplicitamente lo scope del calendar
+          const user = await GoogleAuth.signIn();
+          console.log('[Google] Sign in result:', user);
+          
+          // Verifica che lo scope calendar sia presente nel token
+          if (user && user.authentication && user.authentication.accessToken) {
+            console.log('[Google] Access token received, length:', user.authentication.accessToken.length);
+            // Log per debug: verifica scope (se disponibile)
+            if (user.authentication.scope) {
+              console.log('[Google] Token scopes:', user.authentication.scope);
+            }
           }
+          
+          if (!user || !user.authentication || !user.authentication.accessToken) {
+            console.error('[Google] No access token received');
+            throw new Error('Autenticazione fallita');
+          }
+          
+          accessToken = user.authentication.accessToken;
+          userEmail = user.email;
+          console.log('[Google] Signed in as:', userEmail);
         }
-        
-        if (!user || !user.authentication || !user.authentication.accessToken) {
-          console.error('[Google] No access token received');
-          throw new Error('Autenticazione fallita');
-        }
-        
-        accessToken = user.authentication.accessToken;
-        userEmail = user.email;
-        console.log('[Google] Signed in as:', userEmail);
       }
       
       // Calcola ID account Google (ID 1 è riservato per "Locale", Google parte da 2)
       const existingAccount = allAccounts.find(a => a.email === userEmail && a.name.startsWith('Google'));
       googleAccountId = existingAccount?.id || Math.max(1, ...allAccounts.map(a => a.id)) + 1;
-      
-      // Salva token, email e scadenza se è un nuovo login
-      if (!existingGoogleAccount) {
-        const expiry = Date.now() + (55 * 60 * 1000);
-        localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
-        localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
-        localStorage.setItem(`calendar4jw_google_token_expiry_${googleAccountId}`, expiry.toString());
-        console.log('[Google] Token saved with ID', googleAccountId);
-      }
+
+      // Salva sempre token, email e scadenza per riuso nelle sync successive
+      const loginExpiry = Date.now() + (55 * 60 * 1000);
+      localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
+      localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
+      localStorage.setItem(`calendar4jw_google_token_expiry_${googleAccountId}`, loginExpiry.toString());
+      console.log('[Google] Token saved with ID', googleAccountId);
       
       // Fetch eventi da Google Calendar (ultimi 6 mesi e prossimi 12 mesi)
       const timeMin = new Date();
@@ -289,18 +489,34 @@ const CalendarApp = () => {
       if (res.status === 401) {
         console.warn('[Google] Token scaduto durante sync, tento refresh...');
         try {
-          // Prima prova refresh silenzioso
-          let user = await GoogleAuth.refresh();
-          
-          // Se refresh silenzioso fallisce, prova signIn
-          if (!user || !user.authentication || !user.authentication.accessToken) {
-            console.log('[Google] Refresh silenzioso fallito, richiedo login...');
-            user = await GoogleAuth.signIn();
+          if (isWebPlatform) {
+            try {
+              const webAuth = await signInGoogleWeb({ prompt: '' });
+              accessToken = webAuth.accessToken;
+              userEmail = webAuth.userEmail || userEmail;
+            } catch (silentErr) {
+              console.warn('[Google][Web] Silent refresh failed, requesting interactive login...');
+              const webAuth = await signInGoogleWeb({ prompt: 'select_account' });
+              accessToken = webAuth.accessToken;
+              userEmail = webAuth.userEmail || userEmail;
+            }
+          } else {
+            // Prima prova refresh silenzioso
+            let user = await GoogleAuth.refresh();
+            
+            // Se refresh silenzioso fallisce, prova signIn
+            if (!user || !user.authentication || !user.authentication.accessToken) {
+              console.log('[Google] Refresh silenzioso fallito, richiedo login...');
+              user = await GoogleAuth.signIn();
+            }
+            
+            if (user && user.authentication && user.authentication.accessToken) {
+              accessToken = user.authentication.accessToken;
+              userEmail = user.email || userEmail; // Mantieni email esistente se non fornita
+            } else {
+              throw new Error('Refresh token fallito');
+            }
           }
-          
-          if (user && user.authentication && user.authentication.accessToken) {
-            accessToken = user.authentication.accessToken;
-            userEmail = user.email || userEmail; // Mantieni email esistente se non fornita
             
             // Salva token aggiornato con nuova scadenza
             const expiry = Date.now() + (55 * 60 * 1000);
@@ -313,13 +529,10 @@ const CalendarApp = () => {
             res = await fetch(url, {
               headers: { Authorization: `Bearer ${accessToken}` }
             });
-          } else {
-            throw new Error('Refresh token fallito');
-          }
         } catch (refreshErr) {
           console.error('[Google] Refresh fallito:', refreshErr);
           // Rimuovi token invalido e disconnetti account
-          if (existingGoogleAccount) {
+          if (existingGoogleAccount && !isWebPlatform) {
             localStorage.removeItem(`calendar4jw_google_token_${existingGoogleAccount.id}`);
             setAccounts(prev => prev.map(acc =>
               acc.id === existingGoogleAccount.id ? { ...acc, connected: false } : acc
@@ -360,6 +573,7 @@ const CalendarApp = () => {
       const data = await res.json();
       
       if (data.items) {
+        const isNewGoogleAccount = !existingAccount;
         const googleEvents = data.items
           .filter(item => item.start && (item.start.date || item.start.dateTime))
           .map(item => {
@@ -407,7 +621,29 @@ const CalendarApp = () => {
         
         localStorage.setItem(`calendar4jw_google_token_${googleAccountId}`, accessToken);
         localStorage.setItem(`calendar4jw_google_user_${googleAccountId}`, userEmail);
+        localStorage.setItem(`calendar4jw_google_token_expiry_${googleAccountId}`, (Date.now() + (55 * 60 * 1000)).toString());
         setGoogleUserId(userEmail); // Imposta lo stato per mostrare i pulsanti
+
+        // Chiedi all'utente se vuole usare il nuovo account Google come calendario predefinito
+        if (isNewGoogleAccount && settings.defaultCalendar !== googleAccountId) {
+          const setAsDefaultMsg =
+            settings.language === 'it'
+              ? `Vuoi impostare Google (${userEmail}) come calendario predefinito?`
+              : settings.language === 'es'
+                ? `¿Quieres configurar Google (${userEmail}) como calendario predeterminado?`
+                : `Do you want to set Google (${userEmail}) as the default calendar?`;
+
+          if (window.confirm(setAsDefaultMsg)) {
+            setSettings(prev => ({ ...prev, defaultCalendar: googleAccountId }));
+            showTransientMessage(
+              settings.language === 'it'
+                ? '✅ Calendario predefinito aggiornato'
+                : settings.language === 'es'
+                  ? '✅ Calendario predeterminado actualizado'
+                  : '✅ Default calendar updated'
+            );
+          }
+        }
         
         // Mantieni il calendario predefinito corrente (non cambiare automaticamente)
         // L'utente può cambiarlo manualmente dalle impostazioni se vuole
@@ -417,7 +653,14 @@ const CalendarApp = () => {
     } catch (err) {
       console.error('[Google] Error during sync:', err);
       console.error('[Google] Error stack:', err.stack);
-      alert(`❌ ${tr.syncError} ${err.message || JSON.stringify(err)}`);
+      const classification = classifyGoogleAuthError(err);
+      logGoogleAuthDiagnostics('syncGoogle', classification);
+
+      if (classification.kind === 'unknown') {
+        alert(`❌ ${tr.syncError} ${classification.rawMessage}`);
+      } else {
+        alert(`⚠️ ${getGoogleAuthErrorMessage(classification, { isWeb: Capacitor.getPlatform() === 'web' })}`);
+      }
     } finally {
       setSyncing(false);
     }
@@ -568,10 +811,12 @@ const CalendarApp = () => {
     });
     
     // Inizializza GoogleAuth
+    const isWebPlatform = Capacitor.getPlatform() === 'web';
     GoogleAuth.initialize({
       clientId: '278165724364-f67mcfiuh61qgmjn4qkoiq79q95c7phs.apps.googleusercontent.com',
       scopes: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
-      grantOfflineAccess: true
+      // Sul web l'offline access aumenta i casi di popup failure se il client non e configurato ad hoc.
+      grantOfflineAccess: !isWebPlatform
     });
     
     const savedUser = localStorage.getItem('calendar4jw_google_user');
@@ -998,38 +1243,70 @@ const CalendarApp = () => {
             savedToCloud = true;
             console.log('✅ Evento salvato su Google Calendar');
           } else if (res.status === 401) {
-            // Token scaduto - prova a ottenere un nuovo token
+            // Token scaduto - prova refresh silenzioso prima del login interattivo
             console.warn('⚠️ Token Google scaduto, tento refresh automatico...');
             try {
-              const user = await GoogleAuth.signIn();
-              if (user && user.authentication && user.authentication.accessToken) {
-                const newToken = user.authentication.accessToken;
-                localStorage.setItem(`calendar4jw_google_token_${selectedAccount.id}`, newToken);
-                
-                // Riprova la richiesta con il nuovo token
-                const retryRes = await fetch(url, {
-                  method,
-                  headers: {
-                    'Authorization': `Bearer ${newToken}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(googleEvent)
-                });
-                
-                if (retryRes.ok) {
-                  const savedEvent = await retryRes.json();
-                  evt.googleId = savedEvent.id;
-                  savedToCloud = true;
-                  console.log('✅ Evento salvato su Google Calendar dopo refresh token');
-                } else {
-                  throw new Error(`Errore dopo refresh: ${retryRes.status}`);
+              const isWebPlatform = Capacitor.getPlatform() === 'web';
+              let newToken = null;
+              let refreshedEmail = selectedAccount.email || '';
+
+              if (isWebPlatform) {
+                try {
+                  const webAuth = await signInGoogleWeb({ prompt: '' });
+                  newToken = webAuth.accessToken;
+                  refreshedEmail = webAuth.userEmail || refreshedEmail;
+                } catch (silentErr) {
+                  console.warn('[Google][Web] Silent refresh failed, requesting interactive login...');
+                  const webAuth = await signInGoogleWeb({ prompt: 'select_account' });
+                  newToken = webAuth.accessToken;
+                  refreshedEmail = webAuth.userEmail || refreshedEmail;
                 }
               } else {
+                let user = await GoogleAuth.refresh();
+                if (!user || !user.authentication || !user.authentication.accessToken) {
+                  user = await GoogleAuth.signIn();
+                }
+
+                if (user && user.authentication && user.authentication.accessToken) {
+                  newToken = user.authentication.accessToken;
+                  refreshedEmail = user.email || refreshedEmail;
+                }
+              }
+
+              if (!newToken) {
                 throw new Error('Refresh token fallito');
               }
+
+              const expiry = Date.now() + (55 * 60 * 1000);
+              localStorage.setItem(`calendar4jw_google_token_${selectedAccount.id}`, newToken);
+              localStorage.setItem(`calendar4jw_google_user_${selectedAccount.id}`, refreshedEmail);
+              localStorage.setItem(`calendar4jw_google_token_expiry_${selectedAccount.id}`, expiry.toString());
+
+              // Riprova la richiesta con il nuovo token
+              const retryRes = await fetch(url, {
+                method,
+                headers: {
+                  'Authorization': `Bearer ${newToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(googleEvent)
+              });
+
+              if (retryRes.ok) {
+                const savedEvent = await retryRes.json();
+                evt.googleId = savedEvent.id;
+                savedToCloud = true;
+                console.log('✅ Evento salvato su Google Calendar dopo refresh token');
+              } else {
+                throw new Error(`Errore dopo refresh: ${retryRes.status}`);
+              }
             } catch (refreshErr) {
-              console.error('❌ Refresh token fallito:', refreshErr);
-              alert(`⚠️ ${tr.googleSessionExpired}`);
+              const classification = classifyGoogleAuthError(refreshErr);
+              logGoogleAuthDiagnostics('handleSave-refresh', classification);
+              const message = classification.kind === 'unknown'
+                ? tr.googleSessionExpired
+                : getGoogleAuthErrorMessage(classification, { isWeb: Capacitor.getPlatform() === 'web' });
+              alert(`⚠️ ${message}`);
               localStorage.removeItem(`calendar4jw_google_token_${selectedAccount.id}`);
               setAccounts(prev => prev.map(acc => 
                 acc.id === selectedAccount.id ? { ...acc, connected: false } : acc
@@ -1045,7 +1322,13 @@ const CalendarApp = () => {
         }
       } catch (err) {
         console.error('Errore salvataggio Google:', err);
-        alert(`⚠️ ${tr.googleSaveError} ${err.message}`);
+        const classification = classifyGoogleAuthError(err);
+        logGoogleAuthDiagnostics('handleSave', classification);
+        if (classification.kind === 'unknown') {
+          alert(`⚠️ ${tr.googleSaveError} ${classification.rawMessage}`);
+        } else {
+          alert(`⚠️ ${getGoogleAuthErrorMessage(classification, { isWeb: Capacitor.getPlatform() === 'web' })}`);
+        }
       }
     }
     // Salvataggio su CalDAV (tutti gli account che non sono Google)
@@ -1950,6 +2233,23 @@ const CalendarApp = () => {
                         {tr.disconnect}
                       </button>
                     </div>
+                    <button
+                      onClick={() => {
+                        setSettings(prev => ({ ...prev, defaultCalendar: acc.id }));
+                        showTransientMessage(
+                          settings.language === 'it'
+                            ? '✅ Calendario predefinito aggiornato'
+                            : settings.language === 'es'
+                              ? '✅ Calendario predeterminado actualizado'
+                              : '✅ Default calendar updated'
+                        );
+                      }}
+                      disabled={settings.defaultCalendar === acc.id}
+                      className="w-full mt-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                      {settings.defaultCalendar === acc.id
+                        ? (settings.language === 'it' ? 'Calendario predefinito' : settings.language === 'es' ? 'Calendario predeterminado' : 'Default calendar')
+                        : (settings.language === 'it' ? 'Imposta come predefinito' : settings.language === 'es' ? 'Establecer como predeterminado' : 'Set as default')}
+                    </button>
                   </div>
                 ))}
                 <button onClick={addGoogleAccount}
@@ -2003,6 +2303,23 @@ const CalendarApp = () => {
                           {tr.remove}
                         </button>
                       </div>
+                      <button
+                        onClick={() => {
+                          setSettings(prev => ({ ...prev, defaultCalendar: parseInt(acc.id) }));
+                          showTransientMessage(
+                            settings.language === 'it'
+                              ? '✅ Calendario predefinito aggiornato'
+                              : settings.language === 'es'
+                                ? '✅ Calendario predeterminado actualizado'
+                                : '✅ Default calendar updated'
+                          );
+                        }}
+                        disabled={settings.defaultCalendar === parseInt(acc.id)}
+                        className="w-full mt-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                        {settings.defaultCalendar === parseInt(acc.id)
+                          ? (settings.language === 'it' ? 'Calendario predefinito' : settings.language === 'es' ? 'Calendario predeterminado' : 'Default calendar')
+                          : (settings.language === 'it' ? 'Imposta come predefinito' : settings.language === 'es' ? 'Establecer como predeterminado' : 'Set as default')}
+                      </button>
                     </div>
                   ))}
                   <button onClick={() => { setShowCaldavModal(true); setShowSystemMenu(false); }}
@@ -2783,7 +3100,7 @@ const CalendarApp = () => {
           <span>Calendar4JW v1.1</span>
           <span>•</span>
           <a 
-            href="https://calendar4jw-prod.web.app/privacy-policy.html" 
+            href="https://wahost.eu/privacy-policy.html" 
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-blue-600 underline"
@@ -2792,7 +3109,7 @@ const CalendarApp = () => {
           </a>
           <span>•</span>
           <a 
-            href="https://calendar4jw-prod.web.app/terms-of-service.html" 
+            href="https://wahost.eu/terms-of-service.html" 
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-blue-600 underline"
